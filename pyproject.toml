@@ -8,8 +8,19 @@ version = "0.1.0"
 description = "Scan any project and explore it as an interactive multi-view dashboard: folder mindmap, dependency graph, symbol graph, AI-written module cards, tech radar, and hotspots."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "AICodeCartographer" }]
+license = { file = "LICENSE" }
+authors = [{ name = "dpastoetter" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",

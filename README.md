@@ -24,6 +24,19 @@ Static analysis is always available. The AI summaries are powered by a
 Cards are cached on disk by content hash, so re-running a scan only spends
 tokens on files that actually changed.
 
+## Screenshots
+
+| | |
+| :--: | :--: |
+| <img src="docs/screenshots/01-welcome.png" alt="Welcome screen with Recent scans" /> | <img src="docs/screenshots/02-mindmap.png" alt="Folder mindmap view" /> |
+| Welcome screen — kick off a scan or jump back into a recent one. | Folder mindmap — click any node to drill in. |
+| <img src="docs/screenshots/03-dependencies.png" alt="Module dependency graph" /> | <img src="docs/screenshots/04-symbols.png" alt="Symbol graph" /> |
+| Module dependency graph — fcose layout, neighborhood highlight on click. | Symbol graph — classes, functions, methods and their calls. |
+| <img src="docs/screenshots/05-module-cards.png" alt="AI-generated module cards" /> | <img src="docs/screenshots/06-tech-radar.png" alt="Tech radar with language and library breakdown" /> |
+| AI module cards — natural-language summaries streamed in as they finish. | Tech radar — languages by LoC plus frameworks/libraries detected from manifests. |
+| <img src="docs/screenshots/07-hotspots.png" alt="Hotspots view" /> | |
+| Hotspots — largest files, most-imported modules, complexity, and git churn. | |
+
 ## Languages supported (out of the box)
 
 `tree-sitter` powered analysis: **Python**, **JavaScript**, **TypeScript**,
@@ -38,7 +51,7 @@ Adding a deeper grammar is a 3-line change in
 ## Install
 
 ```bash
-git clone <this-repo> aicartographer
+git clone https://github.com/dpastoetter/AICodebaseCartographer.git aicartographer
 cd aicartographer
 
 python -m venv .venv && source .venv/bin/activate
@@ -124,6 +137,14 @@ ruff check backend
 cd frontend && npx tsc --noEmit
 ```
 
+Re-generate the screenshots in [`docs/screenshots/`](docs/screenshots/):
+
+```bash
+pip install playwright
+python -m playwright install chromium
+python scripts/take_screenshots.py
+```
+
 ## License
 
-MIT.
+[MIT](LICENSE) © 2026 dpastoetter
