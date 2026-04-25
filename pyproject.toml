@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aicartographer"
+version = "0.1.0"
+description = "Scan any project and explore it as an interactive multi-view dashboard: folder mindmap, dependency graph, symbol graph, AI-written module cards, tech radar, and hotspots."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "AICodeCartographer" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sse-starlette>=2.0",
+    "pydantic>=2.6",
+    "pathspec>=0.12",
+    "tree-sitter>=0.23",
+    "tree-sitter-python>=0.23",
+    "tree-sitter-javascript>=0.23",
+    "tree-sitter-typescript>=0.23",
+    "httpx>=0.27",
+    "anyio>=4.3",
+    "click>=8.1",
+    "rich>=13.7",
+    "tomli>=2.0; python_version<'3.11'",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.25"]
+openai = ["openai>=1.20"]
+all = ["anthropic>=0.25", "openai>=1.20"]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[project.scripts]
+aicartographer = "aicartographer.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend/aicartographer"]
+# Frontend build assets are picked up at runtime when present at
+# `frontend/dist` next to the source tree, or copied into the package as
+# `_frontend/` for distribution wheels.
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
