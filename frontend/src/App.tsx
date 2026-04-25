@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ScanProgress } from "./components/ScanProgress";
 import { DetailPanel } from "./components/DetailPanel";
@@ -19,6 +19,11 @@ export function App() {
   const scanId = useStore((s) => s.scanId);
   const attach = useStore((s) => s.attachToScan);
   const selected = useStore((s) => s.selectedPath);
+  const startRepoScan = useStore((s) => s.startRepoScan);
+
+  const [repo, setRepo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [repoError, setRepoError] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,15 +46,51 @@ export function App() {
               {status?.root_path ?? "Select a repository to analyze."}
             </p>
           </div>
-          {status && (
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              <span className="pill">
-                {status.totals.files} files · {status.totals.languages} langs
-              </span>
-              <StatusBadge state={status.state} />
-            </div>
-          )}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <form
+              className="flex items-center gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const v = repo.trim();
+                if (!v) return;
+                setRepoError(null);
+                setBusy(true);
+                try {
+                  await startRepoScan(v);
+                  setRepo("");
+                } catch (err) {
+                  setRepoError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <input
+                className="input w-80 font-mono text-xs"
+                placeholder="GitHub repo (owner/repo or https://github.com/owner/repo)"
+                value={repo}
+                onChange={(e) => setRepo(e.target.value)}
+                disabled={busy}
+              />
+              <button className="button" type="submit" disabled={busy || !repo.trim()}>
+                {busy ? "Cloning…" : "Analyze"}
+              </button>
+            </form>
+            {status && (
+              <>
+                <span className="pill">
+                  {status.totals.files} files · {status.totals.languages} langs
+                </span>
+                <StatusBadge state={status.state} />
+              </>
+            )}
+          </div>
         </header>
+        {repoError && (
+          <div className="border-b border-white/[0.06] bg-canvas-900/60 px-5 py-2 text-xs text-rose-300">
+            {repoError}
+          </div>
+        )}
         <div className="flex h-[calc(100%-45px)]">
           <section className="relative flex-1 overflow-hidden">
             {!scanId && <StartPanel />}

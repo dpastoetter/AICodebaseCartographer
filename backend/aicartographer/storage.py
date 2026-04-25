@@ -34,3 +34,9 @@ def llm_cache_root() -> Path:
     root = data_root() / "llm-cache"
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+def clones_root() -> Path:
+    root = data_root() / "clones"
+    root.mkdir(parents=True, exist_ok=True)
+    return root

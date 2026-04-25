@@ -37,6 +37,20 @@ export const api = {
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   },
+  startScanFromRepo: async (body: {
+    repo: string;
+    llm: string;
+    model?: string | null;
+    max_files?: number | null;
+  }): Promise<ScanStatus> => {
+    const r = await fetch(`${API_BASE}/api/scans/from-repo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
   tree: (id: string) => getJSON<TreeResponse>(`/api/scans/${id}/tree`),
   deps: (id: string) => getJSON<DependencyGraph>(`/api/scans/${id}/dependencies`),
   symbols: (id: string) => getJSON<SymbolGraph>(`/api/scans/${id}/symbols`),

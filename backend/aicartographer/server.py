@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
-from .models import ScanRequest, ScanStatus
+from .models import ScanFromRepoRequest, ScanRequest, ScanStatus
 from .scanner import load_artifact, registry, run_scan_sync
 
 log = logging.getLogger(__name__)
@@ -80,6 +80,42 @@ def create_app() -> FastAPI:
 
                 try:
                     await run_llm_pipeline(record, req)
+                except Exception as exc:  # noqa: BLE001
+                    log.exception("LLM pipeline failed: %s", exc)
+                    record.status.error = (record.status.error or "") + f" llm:{exc}"
+
+        background.add_task(_run)
+        return record.status
+
+    @app.post("/api/scans/from-repo")
+    async def create_scan_from_repo(
+        req: ScanFromRepoRequest, background: BackgroundTasks
+    ) -> ScanStatus:
+        from .github import RepoCloneError, RepoParseError, ensure_cloned, parse_repo
+
+        try:
+            ref = parse_repo(req.repo)
+            target = ensure_cloned(ref)
+        except RepoParseError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RepoCloneError as exc:
+            raise HTTPException(status_code=502, detail=f"Clone failed: {exc}") from exc
+
+        scan_req = ScanRequest(
+            path=str(target),
+            llm=req.llm,
+            model=req.model,
+            max_files=req.max_files,
+        )
+        record = registry.create(scan_req)
+
+        async def _run() -> None:
+            await asyncio.to_thread(run_scan_sync, record, scan_req)
+            if scan_req.llm != "none":
+                from .llm.pipeline import run_llm_pipeline
+
+                try:
+                    await run_llm_pipeline(record, scan_req)
                 except Exception as exc:  # noqa: BLE001
                     log.exception("LLM pipeline failed: %s", exc)
                     record.status.error = (record.status.error or "") + f" llm:{exc}"

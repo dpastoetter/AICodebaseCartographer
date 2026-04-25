@@ -18,6 +18,13 @@ class ScanRequest(BaseModel):
     max_files: int | None = Field(default=None, ge=1)
 
 
+class ScanFromRepoRequest(BaseModel):
+    repo: str
+    llm: LLMKind = "none"
+    model: str | None = None
+    max_files: int | None = Field(default=None, ge=1)
+
+
 class ScanProgress(BaseModel):
     files_seen: int = 0
     files_parsed: int = 0
