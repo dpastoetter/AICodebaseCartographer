@@ -28,6 +28,7 @@ export const api = {
     llm: string;
     model?: string | null;
     max_files?: number | null;
+    api_key?: string | null;
   }): Promise<ScanStatus> => {
     const r = await fetch(`${API_BASE}/api/scans`, {
       method: "POST",
@@ -42,6 +43,7 @@ export const api = {
     llm: string;
     model?: string | null;
     max_files?: number | null;
+    api_key?: string | null;
   }): Promise<ScanStatus> => {
     const r = await fetch(`${API_BASE}/api/scans/from-repo`, {
       method: "POST",

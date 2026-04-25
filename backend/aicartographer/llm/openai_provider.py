@@ -15,14 +15,14 @@ DEFAULT_MODEL = "gpt-4o-mini"
 class OpenAIProvider:
     name = "openai"
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, api_key: str | None = None) -> None:
         try:
             import openai  # type: ignore[import-not-found]
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError(
                 "openai package not installed. Run `pip install aicartographer[openai]`."
             ) from exc
-        api_key = env("OPENAI_API_KEY")
+        api_key = api_key or env("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY is not set.")
         self.client: Any = openai.AsyncOpenAI(api_key=api_key)

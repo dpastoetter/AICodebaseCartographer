@@ -15,14 +15,14 @@ DEFAULT_MODEL = "claude-3-5-haiku-latest"
 class AnthropicProvider:
     name = "anthropic"
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, api_key: str | None = None) -> None:
         try:
             import anthropic  # type: ignore[import-not-found]
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError(
                 "anthropic package not installed. Run `pip install aicartographer[anthropic]`."
             ) from exc
-        api_key = env("ANTHROPIC_API_KEY")
+        api_key = api_key or env("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set.")
         self.client: Any = anthropic.AsyncAnthropic(api_key=api_key)

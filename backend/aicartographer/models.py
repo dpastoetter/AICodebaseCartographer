@@ -16,6 +16,7 @@ class ScanRequest(BaseModel):
     llm: LLMKind = "none"
     model: str | None = None
     max_files: int | None = Field(default=None, ge=1)
+    api_key: str | None = None
 
 
 class ScanFromRepoRequest(BaseModel):
@@ -23,6 +24,7 @@ class ScanFromRepoRequest(BaseModel):
     llm: LLMKind = "none"
     model: str | None = None
     max_files: int | None = Field(default=None, ge=1)
+    api_key: str | None = None
 
 
 class ScanProgress(BaseModel):

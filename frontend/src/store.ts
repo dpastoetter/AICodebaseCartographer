@@ -36,7 +36,7 @@ interface State {
   setView: (view: ViewKey) => void;
   setSelected: (path: string | null) => void;
   attachToScan: (scanId: string) => Promise<void>;
-  startRepoScan: (repo: string) => Promise<void>;
+  startRepoScan: (repo: string, apiKey?: string | null) => Promise<void>;
   reloadArtifacts: () => Promise<void>;
 }
 
@@ -107,8 +107,8 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  startRepoScan: async (repo: string) => {
-    const status = await api.startScanFromRepo({ repo, llm: "none" });
+  startRepoScan: async (repo: string, apiKey?: string | null) => {
+    const status = await api.startScanFromRepo({ repo, llm: "none", api_key: apiKey ?? null });
     const url = new URL(window.location.href);
     url.searchParams.set("scan", status.scan_id);
     window.history.replaceState({}, "", url);

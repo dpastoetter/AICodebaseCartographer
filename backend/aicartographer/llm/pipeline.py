@@ -26,15 +26,15 @@ CONCURRENCY = 4
 SKIP_LANGS = {None, "json", "yaml", "toml", "markdown", "html", "css", "scss"}
 
 
-def _select_provider(kind: LLMKind, model: str | None) -> LLMProvider | None:
+def _select_provider(kind: LLMKind, model: str | None, api_key: str | None) -> LLMProvider | None:
     if kind == "anthropic":
         from .anthropic_provider import AnthropicProvider
 
-        return AnthropicProvider(model=model)
+        return AnthropicProvider(model=model, api_key=api_key)
     if kind == "openai":
         from .openai_provider import OpenAIProvider
 
-        return OpenAIProvider(model=model)
+        return OpenAIProvider(model=model, api_key=api_key)
     if kind == "ollama":
         from .ollama_provider import OllamaProvider
 
@@ -79,7 +79,7 @@ async def run_llm_pipeline(record: ScanRecord, request: ScanRequest) -> None:
     if request.llm == "none":
         return
     try:
-        provider = _select_provider(request.llm, request.model)
+        provider = _select_provider(request.llm, request.model, request.api_key)
     except Exception as exc:  # noqa: BLE001
         log.exception("provider init failed")
         record.status.error = f"LLM init failed: {exc}"

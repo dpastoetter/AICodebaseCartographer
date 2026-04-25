@@ -82,6 +82,13 @@ This starts a local FastAPI server, kicks off the scan, and opens
 `http://localhost:<port>/?scan=<id>` in your browser. The dashboard updates
 live via Server-Sent Events as the scan progresses.
 
+You can also paste a public GitHub repo into the UI (Start panel or top header bar):
+
+- `owner/repo`
+- `https://github.com/owner/repo`
+
+The backend will clone into `AICARTOGRAPHER_HOME/clones/` (or `~/.aicartographer/clones/`) and scan the local working copy.
+
 To enable AI module cards, pick a provider:
 
 ```bash
@@ -96,6 +103,8 @@ aicartographer scan ./repo --llm openai --model gpt-4o-mini
 # Ollama (private, local, no API key)
 aicartographer scan ./repo --llm ollama --model llama3.1
 ```
+
+If you prefer, you can enter an API key directly in the UI (stored locally in your browser) instead of using environment variables.
 
 Other useful flags:
 
