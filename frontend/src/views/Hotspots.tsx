@@ -8,7 +8,7 @@ export function Hotspots() {
   if (!hot) {
     return (
       <div className="flex h-full items-center justify-center text-slate-500 text-sm">
-        Computing hotspots…
+        Computing hotspot metrics…
       </div>
     );
   }
@@ -100,9 +100,9 @@ function Bar({
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-2 shrink-0">
-      <div className="relative w-32 h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <div className="relative h-1.5 w-32 overflow-hidden rounded-full bg-white/[0.06]">
         <div
-          className="absolute inset-y-0 left-0 bg-accent"
+          className="absolute inset-y-0 left-0 rounded-full bg-accent"
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -17,23 +17,24 @@ interface Props {
   nodeColorByGroup?: boolean;
 }
 
+/** Muted, distinguishable palette for categorical groups. */
 const GROUP_PALETTE = [
-  "#7dd3fc",
-  "#a78bfa",
-  "#34d399",
-  "#fbbf24",
-  "#f472b6",
-  "#fb7185",
-  "#22d3ee",
-  "#facc15",
+  "#5b8bd9",
+  "#7c8aa0",
+  "#8b7ec8",
+  "#b89a5c",
+  "#5aada8",
+  "#a67c8f",
+  "#6b9b7a",
+  "#9b8b6e",
 ];
 
 export function CytoscapeView({
   elements,
   onSelect,
   selected,
-  highlightColor = "#7dd3fc",
-  edgeColor = "rgba(125, 211, 252, 0.35)",
+  highlightColor = "#3b82f6",
+  edgeColor = "rgba(59, 130, 246, 0.22)",
   nodeColorByGroup = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,36 +64,34 @@ export function CytoscapeView({
           selector: "node",
           style: {
             "background-color": (ele: NodeSingular) =>
-              nodeColorByGroup
-                ? groupColor(ele.data("group"))
-                : highlightColor,
+              nodeColorByGroup ? groupColor(ele.data("group")) : highlightColor,
             "border-width": 1,
-            "border-color": "rgba(255,255,255,0.1)",
-            "label": "data(label)",
+            "border-color": "rgba(255,255,255,0.08)",
+            label: "data(label)",
             "font-size": 9,
-            "color": "#cbd5e1",
-            "text-outline-color": "#0b0f1a",
+            color: "#cbd5e1",
+            "text-outline-color": "#09090b",
             "text-outline-width": 2,
-            "width": (ele: NodeSingular) => sizeFor(ele.data("size") ?? 1),
-            "height": (ele: NodeSingular) => sizeFor(ele.data("size") ?? 1),
+            width: (ele: NodeSingular) => sizeFor(ele.data("size") ?? 1),
+            height: (ele: NodeSingular) => sizeFor(ele.data("size") ?? 1),
           },
         },
         {
           selector: "node:selected",
           style: {
             "border-color": highlightColor,
-            "border-width": 3,
+            "border-width": 2,
           },
         },
         {
           selector: "edge",
           style: {
-            "width": 1,
+            width: 1,
             "line-color": edgeColor,
             "target-arrow-color": edgeColor,
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
-            "opacity": 0.7,
+            opacity: 0.65,
           },
         },
         {
@@ -100,17 +99,17 @@ export function CytoscapeView({
           style: {
             "line-color": highlightColor,
             "target-arrow-color": highlightColor,
-            "width": 2,
-            "opacity": 1,
+            width: 1.5,
+            opacity: 1,
           },
         },
         {
           selector: "node.dim",
-          style: { opacity: 0.18 },
+          style: { opacity: 0.14 },
         },
         {
           selector: "edge.dim",
-          style: { opacity: 0.05 },
+          style: { opacity: 0.04 },
         },
       ],
       layout: {

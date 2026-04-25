@@ -5,15 +5,16 @@ export default {
     extend: {
       colors: {
         canvas: {
-          900: "#0b0f1a",
-          800: "#11172a",
-          700: "#172037",
-          600: "#1f2a48",
+          900: "#09090b",
+          800: "#0f1014",
+          700: "#16181d",
+          600: "#1f2229",
         },
         accent: {
-          DEFAULT: "#7dd3fc",
-          400: "#38bdf8",
-          500: "#0ea5e9",
+          DEFAULT: "#3b82f6",
+          400: "#60a5fa",
+          500: "#2563eb",
+          600: "#1d4ed8",
         },
       },
       fontFamily: {
@@ -26,6 +27,9 @@ export default {
           "sans-serif",
         ],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        panel: "0 1px 2px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04)",
       },
     },
   },

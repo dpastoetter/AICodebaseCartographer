@@ -10,6 +10,7 @@ import { ModuleCards } from "./views/ModuleCards";
 import { TechRadar } from "./views/TechRadar";
 import { Hotspots } from "./views/Hotspots";
 import { useStore } from "./store";
+import type { ScanState } from "./types";
 
 export function App() {
   const view = useStore((s) => s.view);
@@ -30,25 +31,25 @@ export function App() {
     <div className="flex h-full">
       <Sidebar />
       <main className="relative flex-1 overflow-hidden">
-        <header className="flex items-center justify-between border-b border-white/5 bg-canvas-900/50 px-6 py-3">
-          <div>
-            <h1 className="text-base font-semibold capitalize">
-              {scanId ? viewLabel(view) : "Welcome"}
+        <header className="flex items-center justify-between border-b border-white/[0.06] bg-canvas-900/80 px-5 py-2.5 backdrop-blur-sm">
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold text-slate-100">
+              {scanId ? viewLabel(view) : "Overview"}
             </h1>
-            <div className="text-xs text-slate-500">
-              {status?.root_path ?? "Pick a project to map."}
-            </div>
+            <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">
+              {status?.root_path ?? "Select a repository to analyze."}
+            </p>
           </div>
           {status && (
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               <span className="pill">
                 {status.totals.files} files · {status.totals.languages} langs
               </span>
-              <span className="pill capitalize">{status.state}</span>
+              <StatusBadge state={status.state} />
             </div>
           )}
         </header>
-        <div className="flex h-[calc(100%-49px)]">
+        <div className="flex h-[calc(100%-45px)]">
           <section className="relative flex-1 overflow-hidden">
             {!scanId && <StartPanel />}
             {scanId && view === "mindmap" && <Mindmap />}
@@ -66,18 +67,36 @@ export function App() {
   );
 }
 
+function StatusBadge({ state }: { state: ScanState }) {
+  const styles: Record<ScanState, string> = {
+    queued: "border-slate-600/40 bg-slate-500/10 text-slate-400",
+    scanning: "border-amber-500/25 bg-amber-500/10 text-amber-200",
+    analyzing: "border-amber-500/25 bg-amber-500/10 text-amber-200",
+    summarizing: "border-sky-500/25 bg-sky-500/10 text-sky-200",
+    done: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300/90",
+    error: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide ${styles[state]}`}
+    >
+      {state}
+    </span>
+  );
+}
+
 function viewLabel(v: string): string {
   switch (v) {
     case "mindmap":
-      return "Folder mindmap";
+      return "Structure";
     case "deps":
-      return "Dependency graph";
+      return "Dependencies";
     case "symbols":
-      return "Symbol graph";
+      return "Symbols";
     case "cards":
-      return "Module cards";
+      return "Summaries";
     case "tech":
-      return "Tech radar";
+      return "Technology";
     case "hotspots":
       return "Hotspots";
     default:

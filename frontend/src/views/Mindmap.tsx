@@ -11,8 +11,8 @@ function nodeToMarkdown(node: FileNode, depth: number): string {
   const lines: string[] = [];
 
   const label = node.is_dir
-    ? `📁 ${node.name || "/"}`
-    : `${langIcon(node.language)} ${node.name}${node.lines ? ` _${node.lines}L_` : ""}`;
+    ? node.name || "/"
+    : `${node.name}${node.lines ? ` · ${node.lines} lines` : ""}${langTag(node.language)}`;
   lines.push(`${heading} ${label}`);
 
   for (const child of node.children) {
@@ -21,34 +21,24 @@ function nodeToMarkdown(node: FileNode, depth: number): string {
   return lines.join("\n");
 }
 
-function langIcon(lang: string | null): string {
-  switch (lang) {
-    case "python":
-      return "🐍";
-    case "javascript":
-      return "🟨";
-    case "typescript":
-    case "tsx":
-      return "🔷";
-    case "rust":
-      return "🦀";
-    case "go":
-      return "🐹";
-    case "markdown":
-      return "📝";
-    case "json":
-      return "📦";
-    case "toml":
-    case "yaml":
-      return "⚙️";
-    case "css":
-    case "scss":
-      return "🎨";
-    case "html":
-      return "🌐";
-    default:
-      return "📄";
-  }
+function langTag(lang: string | null): string {
+  if (!lang) return "";
+  const map: Record<string, string> = {
+    python: " · py",
+    javascript: " · js",
+    typescript: " · ts",
+    tsx: " · tsx",
+    rust: " · rs",
+    go: " · go",
+    markdown: " · md",
+    json: " · json",
+    toml: " · toml",
+    yaml: " · yaml",
+    css: " · css",
+    scss: " · scss",
+    html: " · html",
+  };
+  return map[lang] ?? ` · ${lang}`;
 }
 
 export function Mindmap() {
@@ -75,7 +65,7 @@ export function Mindmap() {
           spacingHorizontal: 80,
           spacingVertical: 8,
           paddingX: 16,
-          color: () => "#7dd3fc",
+          color: () => "#64748b",
         },
         root,
       );
@@ -94,8 +84,8 @@ export function Mindmap() {
 
   if (!tree) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500 text-sm">
-        Waiting for tree…
+      <div className="flex h-full items-center justify-center text-sm text-slate-500">
+        Loading tree…
       </div>
     );
   }

@@ -53,12 +53,12 @@ export function DependencyGraph() {
 
   return (
     <div className="relative h-full">
-      <div className="absolute top-3 left-4 z-10 panel px-3 py-1.5 text-xs flex items-center gap-3">
-        <span>{deps.nodes.length} files</span>
-        <span className="text-slate-500">·</span>
-        <span>{deps.edges.length} imports</span>
-        <span className="text-slate-500">·</span>
-        <span className="text-slate-500">click a node to focus its neighborhood</span>
+      <div className="absolute left-4 top-3 z-10 flex items-center gap-3 rounded-md border border-white/[0.06] bg-canvas-900/90 px-3 py-1.5 font-mono text-[11px] text-slate-400 backdrop-blur-sm">
+        <span>{deps.nodes.length} nodes</span>
+        <span className="text-slate-600">|</span>
+        <span>{deps.edges.length} edges</span>
+        <span className="text-slate-600">|</span>
+        <span className="text-slate-500">Click a node to isolate neighborhood</span>
       </div>
       <CytoscapeView
         elements={elements}

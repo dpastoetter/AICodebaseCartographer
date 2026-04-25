@@ -2,14 +2,15 @@ import { useMemo, useState } from "react";
 import type { ElementDefinition } from "cytoscape";
 import { CytoscapeView } from "../components/CytoscapeView";
 import { useStore } from "../store";
+import type { FileNode } from "../types";
 
 const KIND_COLORS: Record<string, string> = {
-  class: "#a78bfa",
-  interface: "#22d3ee",
-  type: "#34d399",
-  function: "#7dd3fc",
-  method: "#facc15",
-  variable: "#94a3b8",
+  class: "#818cf8",
+  interface: "#5b9bd5",
+  type: "#6b9b7a",
+  function: "#64748b",
+  method: "#b89a5c",
+  variable: "#78716c",
 };
 
 export function SymbolGraph() {
@@ -42,7 +43,7 @@ export function SymbolGraph() {
           group: n.kind,
           size: 1,
           file: n.file,
-          color: KIND_COLORS[n.kind] ?? "#7dd3fc",
+          color: KIND_COLORS[n.kind] ?? "#64748b",
         },
       });
     }
@@ -78,11 +79,11 @@ export function SymbolGraph() {
 
   return (
     <div className="relative h-full">
-      <div className="absolute top-3 left-4 z-10 panel px-3 py-1.5 text-xs flex items-center gap-3">
+      <div className="absolute left-4 top-3 z-10 flex flex-wrap items-center gap-2 rounded-md border border-white/[0.06] bg-canvas-900/90 px-3 py-1.5 font-mono text-[11px] text-slate-400 backdrop-blur-sm">
         <span>{filtered?.length ?? 0} symbols</span>
-        <span className="text-slate-500">·</span>
+        <span className="text-slate-600">|</span>
         <select
-          className="bg-transparent border border-white/10 rounded-md px-1.5 py-0.5 text-xs"
+          className="rounded border border-white/[0.1] bg-canvas-900 px-1.5 py-0.5 text-[11px] text-slate-300"
           value={folder}
           onChange={(e) => setFolder(e.target.value)}
         >
@@ -94,11 +95,11 @@ export function SymbolGraph() {
           ))}
         </select>
         <select
-          className="bg-transparent border border-white/10 rounded-md px-1.5 py-0.5 text-xs"
+          className="rounded border border-white/[0.1] bg-canvas-900 px-1.5 py-0.5 text-[11px] text-slate-300"
           value={kind}
           onChange={(e) => setKind(e.target.value)}
         >
-          <option value="all">All kinds</option>
+          <option value="all">All symbol kinds</option>
           <option value="class">Classes</option>
           <option value="interface">Interfaces</option>
           <option value="function">Functions</option>
@@ -119,9 +120,7 @@ export function SymbolGraph() {
   );
 }
 
-function collectTopFolders(
-  root: { is_dir: boolean; path: string; children: any[] } | undefined,
-): string[] {
+function collectTopFolders(root: FileNode | undefined): string[] {
   if (!root) return [];
   const out: string[] = [];
   for (const c of root.children ?? []) {

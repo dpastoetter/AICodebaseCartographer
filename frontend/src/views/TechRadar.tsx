@@ -12,23 +12,23 @@ import {
 } from "recharts";
 
 const LANG_COLORS: Record<string, string> = {
-  python: "#3b82f6",
-  javascript: "#facc15",
-  typescript: "#38bdf8",
-  tsx: "#0ea5e9",
-  rust: "#f97316",
-  go: "#22d3ee",
-  java: "#ef4444",
-  c: "#a78bfa",
-  cpp: "#a78bfa",
-  ruby: "#f43f5e",
-  markdown: "#94a3b8",
-  json: "#fb923c",
-  yaml: "#10b981",
-  toml: "#10b981",
-  html: "#fb7185",
-  css: "#22c55e",
-  scss: "#22c55e",
+  python: "#4d7ccf",
+  javascript: "#c4a35a",
+  typescript: "#5b9bd5",
+  tsx: "#5b8bd9",
+  rust: "#b87a5c",
+  go: "#5aada8",
+  java: "#8b7ec8",
+  c: "#7c8aa0",
+  cpp: "#7c8aa0",
+  ruby: "#a67c8f",
+  markdown: "#64748b",
+  json: "#9b8b6e",
+  yaml: "#6b9b7a",
+  toml: "#6b9b7a",
+  html: "#8b7ec8",
+  css: "#6b9b7a",
+  scss: "#6b9b7a",
 };
 
 export function TechRadar() {
@@ -37,7 +37,7 @@ export function TechRadar() {
   if (!tech) {
     return (
       <div className="flex h-full items-center justify-center text-slate-500 text-sm">
-        Waiting for tech radar…
+        Loading technology profile…
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function TechRadar() {
     name: l.name,
     lines: l.lines,
     files: l.files,
-    fill: LANG_COLORS[l.name] ?? "#7dd3fc",
+    fill: LANG_COLORS[l.name] ?? "#5b8bd9",
   }));
 
   const groups = groupItems(tech.items);
@@ -55,16 +55,14 @@ export function TechRadar() {
     <div className="h-full overflow-y-auto p-6">
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="panel p-4 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">
-            Languages by lines of code
-          </h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-200">Languages by lines of code</h3>
           {langData.length === 0 ? (
             <div className="text-xs text-slate-500">No language data.</div>
           ) : (
             <div style={{ width: "100%", height: 320 }}>
               <ResponsiveContainer>
                 <BarChart data={langData} layout="vertical" margin={{ left: 24 }}>
-                  <CartesianGrid stroke="#1f2a48" strokeDasharray="3 3" />
+                  <CartesianGrid stroke="#1f2229" strokeDasharray="3 3" />
                   <XAxis type="number" stroke="#64748b" fontSize={11} />
                   <YAxis
                     dataKey="name"
@@ -75,9 +73,9 @@ export function TechRadar() {
                   />
                   <Tooltip
                     contentStyle={{
-                      background: "#11172a",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8,
+                      background: "#0f1014",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 6,
                       fontSize: 12,
                     }}
                   />
@@ -106,7 +104,7 @@ export function TechRadar() {
         </section>
 
         <section className="panel p-4">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">Manifests</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-200">Manifest sources</h3>
           <ul className="text-xs space-y-1">
             {Array.from(new Set(tech.items.map((i) => i.source))).map((src) => (
               <li key={src} className="text-slate-300 truncate">

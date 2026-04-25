@@ -241,20 +241,21 @@ def main() -> None:
         page = ctx.new_page()
 
         page.goto(base, wait_until="networkidle")
-        page.wait_for_selector("text=Scan a project")
+        # StartPanel headline changed during UI polish; wait for a stable marker.
+        page.wait_for_selector("text=New analysis")
         time.sleep(0.5)
         _shoot(page, "01-welcome")
 
         page.goto(f"{base}/?scan={scan_id}", wait_until="networkidle")
-        page.wait_for_selector("nav button:has-text('Mindmap')")
+        page.wait_for_selector("nav button:has-text('Structure')")
         time.sleep(2.0)
         _shoot(page, "02-mindmap")
 
         for label, name in [
             ("Dependencies", "03-dependencies"),
             ("Symbols", "04-symbols"),
-            ("Module cards", "05-module-cards"),
-            ("Tech radar", "06-tech-radar"),
+            ("Summaries", "05-module-cards"),
+            ("Technology", "06-tech-radar"),
             ("Hotspots", "07-hotspots"),
         ]:
             page.click(f"nav button:has-text('{label}')")
