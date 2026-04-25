@@ -146,3 +146,26 @@ export interface ModuleCard {
   status: "pending" | "ready" | "error" | "skipped";
   error: string | null;
 }
+
+export type RiskSeverity = "low" | "medium" | "high" | "critical";
+export type RiskKind =
+  | "secret"
+  | "insecure_api"
+  | "insecure_config"
+  | "dependency"
+  | "note";
+
+export interface RiskFinding {
+  id: string;
+  severity: RiskSeverity;
+  kind: RiskKind;
+  title: string;
+  detail: string | null;
+  path: string | null;
+  line: number | null;
+  rule: string | null;
+}
+
+export interface RisksReport {
+  findings: RiskFinding[];
+}

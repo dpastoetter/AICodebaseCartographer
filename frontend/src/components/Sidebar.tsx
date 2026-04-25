@@ -5,6 +5,7 @@ import {
   IconHotspots,
   IconMindmap,
   IconModuleCards,
+  IconRisks,
   IconSymbols,
   IconTechRadar,
   LogoMark,
@@ -22,6 +23,7 @@ const VIEWS: {
   { id: "cards", label: "Summaries", hint: "LLM module cards", Icon: IconModuleCards },
   { id: "tech", label: "Technology", hint: "Languages & manifests", Icon: IconTechRadar },
   { id: "hotspots", label: "Hotspots", hint: "Size & coupling", Icon: IconHotspots },
+  { id: "risks", label: "Risks", hint: "Vulnerabilities & danger", Icon: IconRisks },
 ];
 
 export function Sidebar() {

@@ -123,6 +123,10 @@ def create_app() -> FastAPI:
     async def get_hotspots(scan_id: str) -> JSONResponse:
         return _artifact(scan_id, "hotspots.json")
 
+    @app.get("/api/scans/{scan_id}/risks")
+    async def get_risks(scan_id: str) -> JSONResponse:
+        return _artifact(scan_id, "risks.json")
+
     @app.get("/api/scans/{scan_id}/cards")
     async def get_cards(scan_id: str) -> JSONResponse:
         record = registry.get(scan_id)

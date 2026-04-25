@@ -18,11 +18,18 @@ six lenses on the codebase:
   `go.mod`, `pom.xml`, `Gemfile`, etc.
 - **Hotspots** - largest files, most-imported modules, complexity score, and
   recent git churn (when `.git` is available).
+- **Risks** - heuristic checks for secrets, dangerous APIs, and insecure configuration.
 
 Static analysis is always available. The AI summaries are powered by a
 **pluggable provider**: Anthropic Claude, OpenAI, or a local Ollama model.
 Cards are cached on disk by content hash, so re-running a scan only spends
 tokens on files that actually changed.
+
+The Risks report is **offline and heuristic** (not a full SAST scanner). It’s meant
+to quickly highlight suspicious patterns, such as:
+
+- **Secrets**: private key blocks, AWS access key ids, and likely `api_key` / `token` assignments
+- **Dangerous APIs/config**: `eval`/`exec`, `shell=True`, `pickle.load(s)`, `yaml.load`, `verify=False`
 
 ## Screenshots
 
@@ -36,6 +43,8 @@ tokens on files that actually changed.
 | Summaries — natural-language summaries streamed in as they finish. | Technology — languages by LoC plus frameworks/libraries detected from manifests. |
 | <img src="docs/screenshots/07-hotspots.png" alt="Hotspots view" /> | |
 | Hotspots — largest files, most-imported modules, complexity, and git churn. | |
+| <img src="docs/screenshots/08-risks.png" alt="Risk report view showing suspicious secrets and dangerous APIs" /> | |
+| Risks — quick heuristics for secrets and dangerous patterns. | |
 
 ## Languages supported (out of the box)
 
@@ -109,7 +118,7 @@ CLI -> FastAPI server -> Walker -> tree-sitter -> Analysis pipeline -> JSON snap
   directories and binary files.
 - Each scan persists every artifact under
   `~/.aicartographer/scans/<scan_id>/` (`tree.json`, `dependencies.json`,
-  `symbols.json`, `tech.json`, `hotspots.json`, `cards/*.json`). Reopening a
+  `symbols.json`, `tech.json`, `hotspots.json`, `risks.json`, `cards/*.json`). Reopening a
   past scan from the dashboard's "Recent scans" list is instant.
 - LLM responses are cached at `~/.aicartographer/llm-cache/<sha256>.json`,
   keyed by `provider + model + prompt-version + relative-path + file-content`.

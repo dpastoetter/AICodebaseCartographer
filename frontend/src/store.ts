@@ -3,6 +3,7 @@ import type {
   DependencyGraph,
   Hotspots,
   ModuleCard,
+  RisksReport,
   ScanStatus,
   SymbolGraph,
   TechRadar,
@@ -16,7 +17,8 @@ export type ViewKey =
   | "symbols"
   | "cards"
   | "tech"
-  | "hotspots";
+  | "hotspots"
+  | "risks";
 
 interface State {
   scanId: string | null;
@@ -27,6 +29,7 @@ interface State {
   symbols: SymbolGraph | null;
   tech: TechRadar | null;
   hotspots: Hotspots | null;
+  risks: RisksReport | null;
   cards: Record<string, ModuleCard>;
   selectedPath: string | null;
   unsubscribe: (() => void) | null;
@@ -45,6 +48,7 @@ export const useStore = create<State>((set, get) => ({
   symbols: null,
   tech: null,
   hotspots: null,
+  risks: null,
   cards: {},
   selectedPath: null,
   unsubscribe: null,
@@ -63,6 +67,7 @@ export const useStore = create<State>((set, get) => ({
       symbols: null,
       tech: null,
       hotspots: null,
+      risks: null,
       cards: {},
       selectedPath: null,
     });
@@ -111,12 +116,13 @@ export const useStore = create<State>((set, get) => ({
         return null;
       }
     };
-    const [tree, deps, symbols, tech, hotspots, cards] = await Promise.all([
+    const [tree, deps, symbols, tech, hotspots, risks, cards] = await Promise.all([
       safe(api.tree(id)),
       safe(api.deps(id)),
       safe(api.symbols(id)),
       safe(api.tech(id)),
       safe(api.hotspots(id)),
+      safe(api.risks(id)),
       safe(api.cards(id)),
     ]);
     set((s) => {
@@ -126,6 +132,7 @@ export const useStore = create<State>((set, get) => ({
       if (symbols) next.symbols = symbols;
       if (tech) next.tech = tech;
       if (hotspots) next.hotspots = hotspots;
+      if (risks) next.risks = risks;
       if (cards) {
         const map = { ...s.cards };
         for (const c of cards.cards) map[c.path] = c;

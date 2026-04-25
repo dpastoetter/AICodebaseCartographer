@@ -2,6 +2,7 @@ import type {
   DependencyGraph,
   Hotspots,
   ModuleCard,
+  RisksReport,
   ScanStatus,
   SymbolGraph,
   TechRadar,
@@ -41,6 +42,7 @@ export const api = {
   symbols: (id: string) => getJSON<SymbolGraph>(`/api/scans/${id}/symbols`),
   tech: (id: string) => getJSON<TechRadar>(`/api/scans/${id}/tech`),
   hotspots: (id: string) => getJSON<Hotspots>(`/api/scans/${id}/hotspots`),
+  risks: (id: string) => getJSON<RisksReport>(`/api/scans/${id}/risks`),
   cards: (id: string) =>
     getJSON<{ cards: ModuleCard[] }>(`/api/scans/${id}/cards`),
 };

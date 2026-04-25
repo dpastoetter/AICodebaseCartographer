@@ -147,3 +147,22 @@ class ModuleCard(BaseModel):
     tech: list[str] = Field(default_factory=list)
     status: Literal["pending", "ready", "error", "skipped"] = "pending"
     error: str | None = None
+
+
+RiskSeverity = Literal["low", "medium", "high", "critical"]
+RiskKind = Literal["secret", "insecure_api", "insecure_config", "dependency", "note"]
+
+
+class RiskFinding(BaseModel):
+    id: str
+    severity: RiskSeverity
+    kind: RiskKind
+    title: str
+    detail: str | None = None
+    path: str | None = None
+    line: int | None = None
+    rule: str | None = None
+
+
+class RisksReport(BaseModel):
+    findings: list[RiskFinding] = Field(default_factory=list)

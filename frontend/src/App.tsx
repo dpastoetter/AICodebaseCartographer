@@ -9,6 +9,7 @@ import { SymbolGraph } from "./views/SymbolGraph";
 import { ModuleCards } from "./views/ModuleCards";
 import { TechRadar } from "./views/TechRadar";
 import { Hotspots } from "./views/Hotspots";
+import { Risks } from "./views/Risks";
 import { useStore } from "./store";
 import type { ScanState } from "./types";
 
@@ -58,6 +59,7 @@ export function App() {
             {scanId && view === "cards" && <ModuleCards />}
             {scanId && view === "tech" && <TechRadar />}
             {scanId && view === "hotspots" && <Hotspots />}
+            {scanId && view === "risks" && <Risks />}
             <ScanProgress />
           </section>
           {selected && <DetailPanel />}
@@ -99,6 +101,8 @@ function viewLabel(v: string): string {
       return "Technology";
     case "hotspots":
       return "Hotspots";
+    case "risks":
+      return "Risks";
     default:
       return v;
   }

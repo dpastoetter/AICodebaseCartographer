@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -31,6 +32,32 @@ import uvicorn
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SHOTS_DIR = REPO_ROOT / "docs" / "screenshots"
 VIEWPORT = {"width": 1440, "height": 900}
+
+
+def _ensure_frontend_built() -> None:
+    """Ensure `frontend/dist` matches the current UI code.
+
+    The backend serves the production bundle from `frontend/dist`, so screenshots
+    should rebuild it when UI code changes.
+    """
+    dist = REPO_ROOT / "frontend" / "dist" / "index.html"
+    if not dist.exists():
+        _build_frontend()
+        return
+    # If any frontend source file is newer than dist/index.html, rebuild.
+    dist_mtime = dist.stat().st_mtime
+    src_root = REPO_ROOT / "frontend" / "src"
+    try:
+        newer = any(p.stat().st_mtime > dist_mtime for p in src_root.rglob("*") if p.is_file())
+    except OSError:
+        newer = True
+    if newer:
+        _build_frontend()
+
+
+def _build_frontend() -> None:
+    print("== building frontend bundle")
+    subprocess.run(["npm", "run", "build"], cwd=REPO_ROOT / "frontend", check=True)
 
 
 def _free_port() -> int:
@@ -217,6 +244,7 @@ def _shoot(page, name: str) -> None:
 
 
 def main() -> None:
+    _ensure_frontend_built()
     SHOTS_DIR.mkdir(parents=True, exist_ok=True)
     home = Path(tempfile.mkdtemp(prefix="aic-shots-"))
     port = _free_port()
@@ -257,6 +285,7 @@ def main() -> None:
             ("Summaries", "05-module-cards"),
             ("Technology", "06-tech-radar"),
             ("Hotspots", "07-hotspots"),
+            ("Risks", "08-risks"),
         ]:
             page.click(f"nav button:has-text('{label}')")
             time.sleep(2.0 if "graph" in label.lower() or label in {"Dependencies", "Symbols"} else 1.0)

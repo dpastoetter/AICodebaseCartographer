@@ -17,6 +17,7 @@ from pathlib import Path
 
 from .analysis import deps as deps_analysis
 from .analysis import hotspots as hotspots_analysis
+from .analysis import risks as risks_analysis
 from .analysis import symbols as symbols_analysis
 from .analysis import tech as tech_analysis
 from .models import (
@@ -24,6 +25,7 @@ from .models import (
     Hotspots,
     LLMInfo,
     ModuleCard,
+    RisksReport,
     ScanProgress,
     ScanRequest,
     ScanState,
@@ -185,6 +187,10 @@ def run_scan_sync(record: ScanRecord, request: ScanRequest) -> None:
         spots = hotspots_analysis.build(root, walk, parsed, dep_graph)
         _persist(record, "hotspots.json", spots)
 
+        _set_state(record, "analyzing", "Computing risks")
+        risks = risks_analysis.build(root, walk, parsed)
+        _persist(record, "risks.json", risks)
+
         record.status.finished_at = datetime.now(timezone.utc)
         _set_state(record, "done", "Static analysis complete")
     except Exception as exc:  # noqa: BLE001
@@ -205,6 +211,7 @@ def load_artifact(scan_id: str, name: str):
 __all__ = [
     "DependencyGraph",
     "Hotspots",
+    "RisksReport",
     "ScanRecord",
     "ScanRegistry",
     "SymbolGraph",

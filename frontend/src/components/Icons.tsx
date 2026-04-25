@@ -90,6 +90,16 @@ export function IconHotspots({ className }: { className?: string }) {
   );
 }
 
+export function IconRisks({ className }: { className?: string }) {
+  return (
+    <Svg className={className}>
+      <path {...stroke} d="M12 3l9 16H3l9-16Z" />
+      <path {...stroke} d="M12 9v5" />
+      <path {...stroke} d="M12 17h.01" />
+    </Svg>
+  );
+}
+
 export function IconDocument({ className }: { className?: string }) {
   return (
     <Svg className={className}>
