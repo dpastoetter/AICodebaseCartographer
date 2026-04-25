@@ -15,6 +15,13 @@ export function StartPanel() {
   const [path, setPath] = useState("");
   const [llm, setLlm] = useState("none");
   const [model, setModel] = useState("");
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      return localStorage.getItem("aicartographer_apiKey") ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recents, setRecents] = useState<ScanStatus[]>([]);
@@ -26,17 +33,32 @@ export function StartPanel() {
 
   async function start() {
     if (!path.trim()) {
-      setError("Enter an absolute path to a directory.");
+      setError("Enter a local path or a public GitHub repo (owner/repo or URL).");
       return;
     }
     setError(null);
     setBusy(true);
     try {
-      const status = await api.startScan({
-        path: path.trim(),
-        llm,
-        model: model.trim() || null,
-      });
+      const raw = path.trim();
+      const input = normalizeRepoInput(raw);
+      const looksLikeRepo =
+        input.includes("github.com/") ||
+        /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/.test(input) ||
+        input.startsWith("git@github.com:");
+
+      const status = looksLikeRepo
+        ? await api.startScanFromRepo({
+            repo: input,
+            llm,
+            model: model.trim() || null,
+            api_key: apiKey.trim() || null,
+          })
+        : await api.startScan({
+            path: input,
+            llm,
+            model: model.trim() || null,
+            api_key: apiKey.trim() || null,
+          });
       const url = new URL(window.location.href);
       url.searchParams.set("scan", status.scan_id);
       window.history.replaceState({}, "", url);
@@ -73,7 +95,7 @@ export function StartPanel() {
               <span className="label-upper">Repository path</span>
               <input
                 className="input mt-1.5 font-mono text-xs"
-                placeholder="/absolute/path/to/repository"
+                placeholder="/absolute/path/to/repository OR https://github.com/owner/repo"
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
               />
@@ -97,6 +119,29 @@ export function StartPanel() {
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                 />
+              </label>
+            )}
+            {llm !== "none" && llm !== "ollama" && (
+              <label className="block">
+                <span className="label-upper">API key (stored in this browser)</span>
+                <input
+                  className="input mt-1.5 font-mono text-xs"
+                  type="password"
+                  placeholder={llm === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"}
+                  value={apiKey}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setApiKey(v);
+                    try {
+                      localStorage.setItem("aicartographer_apiKey", v);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                />
+                <div className="mt-1 text-[11px] text-slate-500">
+                  For convenience only. Prefer environment variables for shared machines.
+                </div>
               </label>
             )}
             {error && <div className="text-xs text-rose-400">{error}</div>}
@@ -142,4 +187,14 @@ export function StartPanel() {
       </div>
     </div>
   );
+}
+
+function normalizeRepoInput(value: string): string {
+  // Common paste/typing issue: "https:/github.com/..." (single slash).
+  if (/^https?:\/github\.com\//i.test(value) && !/^https?:\/\/github\.com\//i.test(value)) {
+    return value.replace(/^https?:\/github\.com\//i, (m) => m.replace(":/", "://"));
+  }
+  // Accept "github.com/owner/repo" without scheme.
+  if (/^github\.com\//i.test(value)) return `https://${value}`;
+  return value;
 }

@@ -64,6 +64,11 @@ def create_app() -> FastAPI:
 
     @app.post("/api/scans")
     async def create_scan(req: ScanRequest, background: BackgroundTasks) -> ScanStatus:
+        if "github.com" in req.path or req.path.startswith("git@github.com:"):
+            raise HTTPException(
+                status_code=400,
+                detail="Looks like a GitHub repo. Use /api/scans/from-repo (or paste it into the GitHub repo input).",
+            )
         target = Path(req.path).expanduser().resolve()
         if not target.exists() or not target.is_dir():
             raise HTTPException(status_code=400, detail=f"Not a directory: {target}")
@@ -106,6 +111,7 @@ def create_app() -> FastAPI:
             llm=req.llm,
             model=req.model,
             max_files=req.max_files,
+            api_key=req.api_key,
         )
         record = registry.create(scan_req)
 

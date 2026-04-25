@@ -24,6 +24,13 @@ export function App() {
   const [repo, setRepo] = useState("");
   const [busy, setBusy] = useState(false);
   const [repoError, setRepoError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      return localStorage.getItem("aicartographer_apiKey") ?? "";
+    } catch {
+      return "";
+    }
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,12 +58,12 @@ export function App() {
               className="flex items-center gap-2"
               onSubmit={async (e) => {
                 e.preventDefault();
-                const v = repo.trim();
+                const v = normalizeRepoInput(repo.trim());
                 if (!v) return;
                 setRepoError(null);
                 setBusy(true);
                 try {
-                  await startRepoScan(v);
+                  await startRepoScan(v, apiKey.trim() || null);
                   setRepo("");
                 } catch (err) {
                   setRepoError(err instanceof Error ? err.message : String(err));
@@ -70,6 +77,22 @@ export function App() {
                 placeholder="GitHub repo (owner/repo or https://github.com/owner/repo)"
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
+                disabled={busy}
+              />
+              <input
+                className="input w-52 font-mono text-xs"
+                type="password"
+                placeholder="API key (optional)"
+                value={apiKey}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setApiKey(v);
+                  try {
+                    localStorage.setItem("aicartographer_apiKey", v);
+                  } catch {
+                    // ignore
+                  }
+                }}
                 disabled={busy}
               />
               <button className="button" type="submit" disabled={busy || !repo.trim()}>
@@ -108,6 +131,14 @@ export function App() {
       </main>
     </div>
   );
+}
+
+function normalizeRepoInput(value: string): string {
+  if (/^https?:\/github\.com\//i.test(value) && !/^https?:\/\/github\.com\//i.test(value)) {
+    return value.replace(/^https?:\/github\.com\//i, (m) => m.replace(":/", "://"));
+  }
+  if (/^github\.com\//i.test(value)) return `https://${value}`;
+  return value;
 }
 
 function StatusBadge({ state }: { state: ScanState }) {
