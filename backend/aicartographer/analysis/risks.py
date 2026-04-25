@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..models import RiskFinding, RisksReport, RiskSeverity
+from ..models import RiskFinding, RiskSeverity, RisksReport
 from ..parsers.treesitter import ParsedFile
 from ..walker import WalkResult
 
