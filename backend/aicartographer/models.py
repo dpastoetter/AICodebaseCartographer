@@ -233,3 +233,66 @@ class ScanCompareResult(BaseModel):
     vulns_added: list[str] = Field(default_factory=list)
     vulns_removed: list[str] = Field(default_factory=list)
     line_deltas: list[dict[str, str | int]] = Field(default_factory=list)
+
+
+class AskCitation(BaseModel):
+    kind: str = "note"
+    label: str
+    path: str | None = None
+    line: int | None = None
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1)
+    llm: LLMKind = "openai"
+    model: str | None = None
+    api_key: str | None = None
+
+
+class AskResponse(BaseModel):
+    answer: str
+    citations: list[AskCitation] = Field(default_factory=list)
+
+
+class ArchitectureLayer(BaseModel):
+    id: str
+    label: str
+    file_count: int = 0
+    lines: int = 0
+    risk_count: int = 0
+
+
+class ArchitectureLayerEdge(BaseModel):
+    source: str
+    target: str
+    import_count: int = 1
+
+
+class ArchitectureMap(BaseModel):
+    layers: list[ArchitectureLayer] = Field(default_factory=list)
+    edges: list[ArchitectureLayerEdge] = Field(default_factory=list)
+
+
+class ScanReviewRequest(BaseModel):
+    """Scan two git refs (base vs head) and return a compare diff."""
+
+    repo: str
+    base: str = "main"
+    head: str = "HEAD"
+    llm: LLMKind = "none"
+    model: str | None = None
+    max_files: int | None = Field(default=None, ge=1)
+
+
+class ScanReviewResult(BaseModel):
+    scan_base: str
+    scan_head: str
+    compare: ScanCompareResult
+    summary: str
+
+
+class WatchStatus(BaseModel):
+    enabled: bool = False
+    updating: bool = False
+    last_update: datetime | None = None
+    message: str = ""

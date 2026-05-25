@@ -19,6 +19,8 @@ const VIEWS: {
   Icon: ComponentType<{ className?: string }>;
 }[] = [
   { id: "overview", label: "Overview", hint: "Architecture brief", Icon: IconDocument },
+  { id: "ask", label: "Ask", hint: "Grounded Q&A", Icon: IconModuleCards },
+  { id: "architecture", label: "Architecture", hint: "Layer map", Icon: IconDependencies },
   { id: "mindmap", label: "Structure", hint: "Repository tree", Icon: IconMindmap },
   { id: "deps", label: "Dependencies", hint: "Import graph", Icon: IconDependencies },
   { id: "symbols", label: "Symbols", hint: "Definitions & calls", Icon: IconSymbols },

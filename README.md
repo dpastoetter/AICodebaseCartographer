@@ -4,11 +4,13 @@
 
 `aicartographer` walks a repository, parses every supported file with
 [tree-sitter](https://tree-sitter.github.io), and opens a local dashboard with
-nine views on the codebase:
+eleven views on the codebase:
 
 | View | What you get |
 | --- | --- |
 | **Overview** | Deterministic architecture brief — purpose, modules, tech stack, dependency hubs, top risks and vulnerabilities |
+| **Ask** | Grounded Q&A over this scan's artifacts (brief, deps, symbols, risks, vulns) with citations; optional LLM |
+| **Architecture** | Layer map — folder clusters and aggregated cross-layer imports |
 | **Structure** | Markmap of the project tree; click any node to drill in |
 | **Dependencies** | Force-directed import graph; focus a node to highlight its neighborhood |
 | **Symbols** | Classes, functions, methods, and call edges — filterable by folder and kind |
@@ -16,18 +18,32 @@ nine views on the codebase:
 | **Technology** | Languages by lines of code; frameworks and libraries from manifests |
 | **Hotspots** | Largest files, most-imported modules, complexity, and git churn |
 | **Risks** | Heuristic security checks **and** OSV dependency vulnerabilities (two tabs) |
-| **Changes** | Diff two saved scans — files, deps, risks, and vulns |
+| **Changes** | Diff two saved scans, or **PR review** (`base` vs `head` git refs) — files, deps, risks, and vulns |
 
 Static analysis works without any API key. Optional **LLM summaries** use Anthropic, OpenAI, or local Ollama; responses are cached on disk by content hash so re-scans only spend tokens on changed files.
 
-**Note:** LLM-powered summaries are still new and have **not yet been tested thoroughly**. Treat them as experimental and verify outputs before relying on them.
+**Note:** LLM-powered summaries and the **Ask** view are still new and have **not yet been tested thoroughly**. Treat them as experimental and verify outputs before relying on them.
+
+## Outstanding features
+
+Five capabilities that turn the dashboard into a daily-driver intelligence tool:
+
+| Feature | What it does |
+| --- | --- |
+| **Ask** | Chat grounded in *this scan* — brief, deps, symbols, risks, vulns, and file excerpts. Answers include clickable citations. |
+| **Architecture** | Folder-layer map with aggregated cross-layer imports and risk counts per layer. |
+| **MCP** | `aicartographer mcp` — stdio server so Cursor (and other agents) can call `get_brief`, `search_codebase`, `get_risks`, `get_vulns`, `get_file_neighbors`, and `get_architecture_map` while you edit. |
+| **PR review** | Scan git `base` vs `head` in one step (local repo or `owner/repo`), then open **Changes** with a semantic summary. |
+| **Watch** | `aicartographer watch` or the header toggle — debounced incremental re-parse while you code; artifacts refresh over SSE. |
 
 ## Dashboard shortcuts
 
 - **Search** (`Ctrl+K`) — jump to files, symbols, risk findings, OSV rows, or module summaries from one palette
 - **Export** — download a standalone HTML report (Markdown via `?format=md` on the API)
 - **Keys** — store OpenAI/Anthropic API keys encrypted under `AICARTOGRAPHER_HOME/secrets/` (never sent back to the browser)
-- **Changes** — pick Scan A and Scan B from recent analyses to see what changed between runs
+- **Changes** — pick Scan A and Scan B from recent analyses, or run a git ref review (`main` vs `feature`)
+- **Watch** — keep the dashboard live while you edit (incremental re-parse; toggle in the header)
+- **MCP** — `aicartographer mcp` exposes brief, search, risks, vulns, and neighbors to Cursor agents (stdio)
 
 ## Security (Risks view)
 
@@ -132,6 +148,49 @@ Or configure keys in the UI via **Keys** (encrypted local storage). Environment 
 | `--no-open` | Don't auto-open the browser |
 | `--max-files N` | Cap files scanned (useful on huge repos) |
 
+### Living scan (watch mode)
+
+```bash
+aicartographer watch /path/to/your/project
+```
+
+Runs a full scan, enables filesystem watch (2s debounce), and incrementally refreshes deps, symbols, hotspots, risks, and the brief. In the UI, use the **Watch** toggle in the header on a completed scan.
+
+### MCP server (Cursor / agents)
+
+```bash
+aicartographer mcp
+```
+
+Stdio JSON-RPC server with tools: `get_brief`, `search_codebase`, `get_risks`, `get_vulns`, `get_file_neighbors`, `get_architecture_map`, `list_scans`.
+
+Add to Cursor **Settings → MCP** (or `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "aicartographer": {
+      "command": "aicartographer",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Run a scan first so artifacts exist under `~/.aicartographer/scans/`. Use `list_scans` to pick a `scan_id`.
+
+### PR review (git refs)
+
+On the **Changes** view, enter a repo path or `owner/repo`, plus `base` (e.g. `main`) and `head` (e.g. `feature/my-branch`). The backend checks out both refs via git worktrees, runs two scans, and shows the diff.
+
+Or via API:
+
+```bash
+curl -X POST http://127.0.0.1:8765/api/scans/review \
+  -H 'Content-Type: application/json' \
+  -d '{"repo": "/path/to/repo", "base": "main", "head": "feature/foo"}'
+```
+
 ## API (selected endpoints)
 
 | Method | Path | Description |
@@ -142,6 +201,13 @@ Or configure keys in the UI via **Keys** (encrypted local storage). Environment 
 | `GET` | `/api/scans/{id}/brief` | Architecture brief |
 | `GET` | `/api/scans/{id}/vulns` | OSV vulnerability report |
 | `GET` | `/api/scans/compare?a=&b=` | Diff two scans |
+| `POST` | `/api/scans/review` | Scan git `base` vs `head`, return compare |
+| `POST` | `/api/scans/{id}/ask` | Grounded Q&A (JSON) |
+| `GET` | `/api/scans/{id}/ask/stream?q=` | Ask via SSE |
+| `GET` | `/api/scans/{id}/architecture` | Layer map |
+| `GET` | `/api/scans/{id}/search?q=` | Search index |
+| `GET` | `/api/scans/{id}/neighbors?path=` | Import neighbors |
+| `POST` / `DELETE` | `/api/scans/{id}/watch` | Enable / disable watch mode |
 | `GET` | `/api/scans/{id}/export?format=html\|md` | Export report |
 | `GET` | `/api/secrets` | Which LLM keys are configured (booleans only) |
 | `POST` | `/api/secrets/{provider}` | Set `openai` or `anthropic` key |
@@ -150,8 +216,10 @@ Or configure keys in the UI via **Keys** (encrypted local storage). Environment 
 ## Architecture
 
 ```
-CLI -> FastAPI server -> Walker -> tree-sitter -> Analysis pipeline -> JSON snapshots
-                                                                  \-> LLM provider -> SSE -> UI
+CLI / MCP (stdio) -> FastAPI -> Walker -> tree-sitter -> Analysis -> JSON snapshots
+                                              |                              |
+                                              +---- Watch (debounced) -------+
+                                              \-> LLM (summaries + Ask) -> SSE -> React UI
 ```
 
 - Walker honors `.gitignore` via `pathspec` and skips common build/cache directories and binary files.
@@ -190,7 +258,7 @@ python -m playwright install chromium
 python scripts/take_screenshots.py
 ```
 
-After UI changes, regenerate screenshots so the gallery matches the current **Overview**, **Changes**, and Risks tabs.
+After UI changes, regenerate screenshots so the gallery matches the current **Overview**, **Ask**, **Architecture**, **Changes**, and Risks tabs.
 
 ## License
 

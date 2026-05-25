@@ -1,15 +1,20 @@
 import type {
   ArchitectureBrief,
+  ArchitectureMap,
+  AskResponse,
   DependencyGraph,
   Hotspots,
+  LLMKind,
   ModuleCard,
   RisksReport,
   ScanCompareResult,
+  ScanReviewResult,
   VulnsReport,
   ScanStatus,
   SymbolGraph,
   TechRadar,
   TreeResponse,
+  WatchStatus,
 } from "./types";
 
 const API_BASE = "";
@@ -64,6 +69,45 @@ export const api = {
   brief: (id: string) => getJSON<ArchitectureBrief>(`/api/scans/${id}/brief`),
   compareScans: (a: string, b: string) =>
     getJSON<ScanCompareResult>(`/api/scans/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),
+  review: async (body: {
+    repo: string;
+    base?: string;
+    head?: string;
+    llm?: string;
+  }): Promise<ScanReviewResult> => {
+    const r = await fetch(`${API_BASE}/api/scans/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  architecture: (id: string) => getJSON<ArchitectureMap>(`/api/scans/${id}/architecture`),
+  ask: async (id: string, body: { question: string; llm: LLMKind }): Promise<AskResponse> => {
+    const r = await fetch(`${API_BASE}/api/scans/${id}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  askStream: (id: string, body: { question: string; llm: LLMKind }): EventSource => {
+    const params = new URLSearchParams({ q: body.question, llm: body.llm });
+    return new EventSource(`${API_BASE}/api/scans/${id}/ask/stream?${params}`);
+  },
+  watch: (id: string) =>
+    fetch(`${API_BASE}/api/scans/${id}/watch`, { method: "POST" }).then(async (r) => {
+      if (!r.ok) throw new Error(await r.text());
+      return r.json() as Promise<WatchStatus>;
+    }),
+  unwatch: (id: string) =>
+    fetch(`${API_BASE}/api/scans/${id}/watch`, { method: "DELETE" }).then(async (r) => {
+      if (!r.ok) throw new Error(await r.text());
+      return r.json() as Promise<WatchStatus>;
+    }),
+  watchStatus: (id: string) => getJSON<WatchStatus>(`/api/scans/${id}/watch`),
   exportUrl: (id: string, format: "md" | "html") =>
     `${API_BASE}/api/scans/${id}/export?format=${format}`,
   cards: (id: string) =>
@@ -89,7 +133,8 @@ export const api = {
 export type ScanEvent =
   | { type: "status"; status: ScanStatus }
   | { type: "progress"; progress: ScanStatus["progress"] }
-  | { type: "card"; card: ModuleCard };
+  | { type: "card"; card: ModuleCard }
+  | { type: "artifacts"; artifacts: string[] };
 
 export function subscribeToScan(
   scanId: string,
@@ -108,6 +153,7 @@ export function subscribeToScan(
   es.addEventListener("status", handler("status"));
   es.addEventListener("progress", handler("progress"));
   es.addEventListener("card", handler("card"));
+  es.addEventListener("artifacts", handler("artifacts"));
   es.onerror = () => {
     es.close();
   };

@@ -6,16 +6,20 @@ import type {
   ModuleCard,
   RisksReport,
   ScanCompareResult,
+  ScanReviewResult,
   VulnsReport,
   ScanStatus,
   SymbolGraph,
   TechRadar,
   TreeResponse,
+  WatchStatus,
 } from "./types";
 import { api, subscribeToScan } from "./api";
 
 export type ViewKey =
   | "overview"
+  | "ask"
+  | "architecture"
   | "mindmap"
   | "deps"
   | "symbols"
@@ -40,6 +44,8 @@ interface State {
   cards: Record<string, ModuleCard>;
   compare: ScanCompareResult | null;
   compareBusy: boolean;
+  reviewSummary: string | null;
+  watch: WatchStatus | null;
   selectedPath: string | null;
   searchOpen: boolean;
   unsubscribe: (() => void) | null;
@@ -50,6 +56,8 @@ interface State {
   startRepoScan: (repo: string) => Promise<void>;
   reloadArtifacts: () => Promise<void>;
   loadCompare: (scanA: string, scanB: string) => Promise<void>;
+  runReview: (repo: string, base: string, head: string) => Promise<void>;
+  setWatch: (enabled: boolean) => Promise<void>;
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -67,6 +75,8 @@ export const useStore = create<State>((set, get) => ({
   cards: {},
   compare: null,
   compareBusy: false,
+  reviewSummary: null,
+  watch: null,
   selectedPath: null,
   searchOpen: false,
   unsubscribe: null,
@@ -92,6 +102,8 @@ export const useStore = create<State>((set, get) => ({
       brief: null,
       cards: {},
       compare: null,
+      reviewSummary: null,
+      watch: null,
       selectedPath: null,
     });
 
@@ -120,6 +132,14 @@ export const useStore = create<State>((set, get) => ({
         if (status) set({ status: { ...status, progress: event.progress } });
       } else if (event.type === "card") {
         set((s) => ({ cards: { ...s.cards, [event.card.path]: event.card } }));
+      } else if (event.type === "artifacts") {
+        await get().reloadArtifacts();
+        try {
+          const ws = await api.watchStatus(scanId);
+          set({ watch: ws });
+        } catch {
+          /* ignore */
+        }
       }
     });
     set({ unsubscribe: unsub });
@@ -178,12 +198,41 @@ export const useStore = create<State>((set, get) => ({
   },
 
   loadCompare: async (scanA: string, scanB: string) => {
-    set({ compareBusy: true, compare: null });
+    set({ compareBusy: true, compare: null, reviewSummary: null });
     try {
       const compare = await api.compareScans(scanA, scanB);
       set({ compare, view: "changes" });
     } finally {
       set({ compareBusy: false });
+    }
+  },
+
+  runReview: async (repo: string, base: string, head: string) => {
+    set({ compareBusy: true, compare: null, reviewSummary: null });
+    try {
+      const result: ScanReviewResult = await api.review({ repo, base, head, llm: "none" });
+      const url = new URL(window.location.href);
+      url.searchParams.set("scan", result.scan_head);
+      window.history.replaceState({}, "", url);
+      await get().attachToScan(result.scan_head);
+      set({
+        compare: result.compare,
+        reviewSummary: result.summary,
+        view: "changes",
+      });
+    } finally {
+      set({ compareBusy: false });
+    }
+  },
+
+  setWatch: async (enabled: boolean) => {
+    const id = get().scanId;
+    if (!id) return;
+    try {
+      const watch = enabled ? await api.watch(id) : await api.unwatch(id);
+      set({ watch });
+    } catch (e) {
+      console.error("watch", e);
     }
   },
 }));

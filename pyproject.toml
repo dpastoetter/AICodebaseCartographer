@@ -37,12 +37,14 @@ dependencies = [
     "rich>=13.7",
     "cryptography>=42.0",
     "tomli>=2.0; python_version<'3.11'",
+    "watchdog>=4.0",
 ]
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.25"]
 openai = ["openai>=1.20"]
-all = ["anthropic>=0.25", "openai>=1.20"]
+all = ["anthropic>=0.25", "openai>=1.20", "watchdog>=4.0"]
+watch = ["watchdog>=4.0"]
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [project.scripts]

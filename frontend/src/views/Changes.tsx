@@ -6,12 +6,19 @@ import type { ScanStatus } from "../types";
 export function Changes() {
   const compare = useStore((s) => s.compare);
   const compareBusy = useStore((s) => s.compareBusy);
+  const reviewSummary = useStore((s) => s.reviewSummary);
   const loadCompare = useStore((s) => s.loadCompare);
+  const runReview = useStore((s) => s.runReview);
   const scanId = useStore((s) => s.scanId);
+  const status = useStore((s) => s.status);
 
   const [recents, setRecents] = useState<ScanStatus[]>([]);
   const [scanA, setScanA] = useState(scanId ?? "");
   const [scanB, setScanB] = useState("");
+  const [reviewRepo, setReviewRepo] = useState("");
+  const [reviewBase, setReviewBase] = useState("main");
+  const [reviewHead, setReviewHead] = useState("HEAD");
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listScans().then(setRecents).catch(() => undefined);
@@ -23,6 +30,55 @@ export function Changes() {
 
   return (
     <div className="h-full overflow-y-auto p-6">
+      <section className="panel mb-4 p-4">
+        <div className="text-sm font-semibold text-slate-200">PR review (git refs)</div>
+        <p className="mt-1 text-xs text-slate-500">
+          Scan <span className="font-mono">base</span> vs <span className="font-mono">head</span> and open
+          the diff automatically. Use a local repo path or GitHub <span className="font-mono">owner/repo</span>.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <input
+            className="input font-mono text-xs sm:col-span-3"
+            placeholder={status?.root_path || "Repo path or owner/repo"}
+            value={reviewRepo}
+            onChange={(e) => setReviewRepo(e.target.value)}
+          />
+          <input
+            className="input font-mono text-xs"
+            placeholder="base (main)"
+            value={reviewBase}
+            onChange={(e) => setReviewBase(e.target.value)}
+          />
+          <input
+            className="input font-mono text-xs"
+            placeholder="head (feature branch)"
+            value={reviewHead}
+            onChange={(e) => setReviewHead(e.target.value)}
+          />
+          <button
+            type="button"
+            className="button"
+            disabled={compareBusy || !reviewRepo.trim()}
+            onClick={async () => {
+              setReviewError(null);
+              try {
+                await runReview(reviewRepo.trim(), reviewBase.trim() || "main", reviewHead.trim() || "HEAD");
+              } catch (err) {
+                setReviewError(err instanceof Error ? err.message : String(err));
+              }
+            }}
+          >
+            {compareBusy ? "Scanning refs…" : "Review"}
+          </button>
+        </div>
+        {reviewError && <p className="mt-2 text-xs text-rose-300">{reviewError}</p>}
+        {reviewSummary && (
+          <p className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-200">
+            {reviewSummary}
+          </p>
+        )}
+      </section>
+
       <section className="panel mb-4 p-4">
         <div className="text-sm font-semibold text-slate-200">Compare scans</div>
         <p className="mt-1 text-xs text-slate-500">

@@ -222,3 +222,48 @@ export interface ScanCompareResult {
   vulns_removed: string[];
   line_deltas: Array<{ path: string; lines_a: number; lines_b: number; delta: number }>;
 }
+
+export interface AskCitation {
+  kind: string;
+  label: string;
+  path: string | null;
+  line: number | null;
+}
+
+export interface AskResponse {
+  answer: string;
+  citations: AskCitation[];
+}
+
+export interface ArchitectureLayer {
+  id: string;
+  label: string;
+  file_count: number;
+  lines: number;
+  risk_count: number;
+}
+
+export interface ArchitectureLayerEdge {
+  source: string;
+  target: string;
+  import_count: number;
+}
+
+export interface ArchitectureMap {
+  layers: ArchitectureLayer[];
+  edges: ArchitectureLayerEdge[];
+}
+
+export interface ScanReviewResult {
+  scan_base: string;
+  scan_head: string;
+  compare: ScanCompareResult;
+  summary: string;
+}
+
+export interface WatchStatus {
+  enabled: boolean;
+  updating: boolean;
+  last_update: string | null;
+  message: string;
+}

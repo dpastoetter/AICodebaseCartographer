@@ -122,6 +122,61 @@ def serve(host: str, port: int) -> None:
     _run_uvicorn(host=host, port=port)
 
 
+@main.command()
+def mcp() -> None:
+    """Run the MCP stdio server (tools for Cursor and other agents)."""
+    from .mcp_server import run_stdio
+
+    console.print("[bold cyan]AICodeCartographer MCP[/bold cyan] (stdio)")
+    run_stdio()
+
+
+@main.command()
+@click.argument("path", type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@click.option("--port", type=int, default=0, help="Port to bind (0 = pick a free one).")
+@click.option("--host", default="127.0.0.1", help="Host to bind.")
+@click.option("--no-open", is_flag=True, help="Do not open the browser.")
+def watch(path: str, port: int, host: str, no_open: bool) -> None:
+    """Scan PATH and keep the dashboard live while files change."""
+    target = Path(path).resolve()
+    if port == 0:
+        port = _free_port()
+    base = f"http://{host}:{port}"
+    server_thread = threading.Thread(
+        target=_run_uvicorn,
+        kwargs={"host": host, "port": port},
+        daemon=True,
+    )
+    server_thread.start()
+    if not _wait_for_server(f"{base}/api/health"):
+        console.print("[red]Server failed to start.[/red]")
+        sys.exit(1)
+    req = ScanRequest(path=str(target), llm="none")
+    r = httpx.post(f"{base}/api/scans", json=req.model_dump(), timeout=10.0)
+    r.raise_for_status()
+    scan_id = r.json()["scan_id"]
+    console.print(f"Waiting for scan [dim]{scan_id}[/dim]…")
+    deadline = time.time() + 600
+    while time.time() < deadline:
+        st = httpx.get(f"{base}/api/scans/{scan_id}", timeout=5.0).json()
+        if st.get("state") in ("done", "error"):
+            break
+        time.sleep(0.5)
+    httpx.post(f"{base}/api/scans/{scan_id}/watch", timeout=10.0)
+    dashboard = f"{base}/?scan={scan_id}"
+    console.print(f"Watch mode on. Dashboard: [link]{dashboard}[/link]")
+    if not no_open:
+        with contextlib.suppress(Exception):
+            webbrowser.open(dashboard)
+    console.print("[dim]Press Ctrl+C to stop.[/dim]")
+    try:
+        while server_thread.is_alive():
+            server_thread.join(timeout=1.0)
+    except KeyboardInterrupt:
+        httpx.delete(f"{base}/api/scans/{scan_id}/watch", timeout=5.0)
+        console.print("\n[bold]Bye.[/bold]")
+
+
 def _run_uvicorn(host: str, port: int) -> None:
     uvicorn.run(
         "aicartographer.server:app",

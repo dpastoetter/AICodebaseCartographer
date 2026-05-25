@@ -11,6 +11,8 @@ import { TechRadar } from "./views/TechRadar";
 import { Hotspots } from "./views/Hotspots";
 import { Risks } from "./views/Risks";
 import { Overview } from "./views/Overview";
+import { Ask } from "./views/Ask";
+import { Architecture } from "./views/Architecture";
 import { Changes } from "./views/Changes";
 import { useStore } from "./store";
 import type { ScanState } from "./types";
@@ -25,6 +27,9 @@ export function App() {
   const attach = useStore((s) => s.attachToScan);
   const selected = useStore((s) => s.selectedPath);
   const startRepoScan = useStore((s) => s.startRepoScan);
+  const watch = useStore((s) => s.watch);
+  const setWatch = useStore((s) => s.setWatch);
+  const statusState = status?.state;
 
   const [repo, setRepo] = useState("");
   const [busy, setBusy] = useState(false);
@@ -82,6 +87,16 @@ export function App() {
                 {busy ? "Cloning…" : "Analyze"}
               </button>
             </form>
+            {scanId && statusState === "done" && (
+              <button
+                type="button"
+                className={`button !bg-white/[0.04] text-xs ${watch?.enabled ? "!border-emerald-500/40" : ""}`}
+                onClick={() => void setWatch(!watch?.enabled)}
+                title={watch?.message || "Live watch mode"}
+              >
+                {watch?.updating ? "Updating…" : watch?.enabled ? "Watch on" : "Watch"}
+              </button>
+            )}
             {scanId && <GlobalSearchTrigger />}
             {scanId && (
               <a
@@ -115,6 +130,8 @@ export function App() {
           <section className="relative flex-1 overflow-hidden">
             {!scanId && <StartPanel />}
             {scanId && view === "overview" && <Overview />}
+            {scanId && view === "ask" && <Ask />}
+            {scanId && view === "architecture" && <Architecture />}
             {scanId && view === "mindmap" && <Mindmap />}
             {scanId && view === "deps" && <DependencyGraph />}
             {scanId && view === "symbols" && <SymbolGraph />}
@@ -164,6 +181,10 @@ function viewLabel(v: string): string {
   switch (v) {
     case "overview":
       return "Overview";
+    case "ask":
+      return "Ask";
+    case "architecture":
+      return "Architecture";
     case "mindmap":
       return "Structure";
     case "deps":

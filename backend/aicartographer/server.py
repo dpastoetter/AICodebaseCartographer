@@ -14,11 +14,29 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
+from .analysis.layers import build_for_scan
+from .ask import ask_scan, neighbors_for_path
 from .compare import compare_scans
 from .export import export_html, export_markdown
-from .models import ScanCompareResult, ScanFromRepoRequest, ScanRequest, ScanStatus, SecretIn
+from .models import (
+    ArchitectureMap,
+    AskRequest,
+    AskResponse,
+    LLMKind,
+    ScanCompareResult,
+    ScanFromRepoRequest,
+    ScanRequest,
+    ScanReviewRequest,
+    ScanReviewResult,
+    ScanStatus,
+    SecretIn,
+    WatchStatus,
+)
+from .review import run_review
 from .scanner import load_artifact, registry, run_scan_sync
+from .search_index import search_codebase
 from .secrets import SecretsError, clear_key, configured, set_key
+from .watch import get_watch_status, start_watch, stop_watch
 
 log = logging.getLogger(__name__)
 
@@ -140,6 +158,27 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=f"Scan not found: {b}")
         return compare_scans(a, b)
 
+    @app.post("/api/scans/review", response_model=ScanReviewResult)
+    async def post_review(req: ScanReviewRequest) -> ScanReviewResult:
+        """Scan base and head git refs, then return compare (runs synchronously)."""
+        try:
+            return await asyncio.to_thread(run_review, req)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/scans/{scan_id}/review", response_model=ScanReviewResult)
+    async def post_local_review(
+        scan_id: str, base: str, head: str = "HEAD"
+    ) -> ScanReviewResult:
+        record = registry.get(scan_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        req = ScanReviewRequest(repo=record.status.root_path, base=base, head=head)
+        try:
+            return await asyncio.to_thread(run_review, req)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.get("/api/scans/{scan_id}")
     async def get_scan(scan_id: str) -> ScanStatus:
         record = registry.get(scan_id)
@@ -188,6 +227,81 @@ def create_app() -> FastAPI:
     async def get_brief(scan_id: str) -> JSONResponse:
         return _artifact(scan_id, "brief.json")
 
+    @app.get("/api/scans/{scan_id}/architecture", response_model=ArchitectureMap)
+    async def get_architecture(scan_id: str) -> ArchitectureMap:
+        amap = build_for_scan(scan_id)
+        if amap is None:
+            raise HTTPException(status_code=404, detail="dependencies.json not ready")
+        return amap
+
+    @app.get("/api/scans/{scan_id}/search")
+    async def get_search(scan_id: str, q: str, limit: int = 25) -> list:
+        if load_artifact(scan_id, "tree.json") is None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        return search_codebase(scan_id, q, limit=min(limit, 50))
+
+    @app.get("/api/scans/{scan_id}/neighbors")
+    async def get_neighbors(scan_id: str, path: str) -> dict:
+        if load_artifact(scan_id, "dependencies.json") is None:
+            raise HTTPException(status_code=404, detail="dependencies.json not ready")
+        return neighbors_for_path(scan_id, path)
+
+    @app.post("/api/scans/{scan_id}/ask", response_model=AskResponse)
+    async def post_ask(scan_id: str, req: AskRequest) -> AskResponse:
+        record = registry.get(scan_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        if record.status.state != "done":
+            raise HTTPException(status_code=409, detail="Scan not complete")
+        root = Path(record.status.root_path)
+        return await ask_scan(
+            scan_id,
+            root,
+            req,
+            llm=req.llm,
+            model=req.model,
+            api_key=req.api_key,
+        )
+
+    @app.get("/api/scans/{scan_id}/ask/stream")
+    async def get_ask_stream(
+        scan_id: str,
+        q: str,
+        llm: LLMKind = "openai",
+        model: str | None = None,
+    ) -> EventSourceResponse:
+        record = registry.get(scan_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        if record.status.state != "done":
+            raise HTTPException(status_code=409, detail="Scan not complete")
+        root = Path(record.status.root_path)
+        req = AskRequest(question=q, llm=llm, model=model)
+
+        async def _gen():
+            result = await ask_scan(scan_id, root, req, llm=req.llm, model=req.model)
+            yield {"event": "answer", "data": result.model_dump_json()}
+            yield {"event": "done", "data": "{}"}
+
+        return EventSourceResponse(_gen())
+
+    @app.post("/api/scans/{scan_id}/watch", response_model=WatchStatus)
+    async def enable_watch(scan_id: str) -> WatchStatus:
+        try:
+            return start_watch(scan_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.delete("/api/scans/{scan_id}/watch", response_model=WatchStatus)
+    async def disable_watch(scan_id: str) -> WatchStatus:
+        return stop_watch(scan_id)
+
+    @app.get("/api/scans/{scan_id}/watch", response_model=WatchStatus)
+    async def watch_status(scan_id: str) -> WatchStatus:
+        return get_watch_status(scan_id)
+
     @app.get("/api/scans/{scan_id}/export")
     async def export_scan(scan_id: str, format: str = "md"):
         if format not in {"md", "html"}:
@@ -219,6 +333,8 @@ def create_app() -> FastAPI:
         for card in record.cards.values():
             queue.put_nowait({"type": "card", "card": card.model_dump()})
 
+        from .watch import _watchers
+
         async def _gen():
             try:
                 while True:
@@ -230,7 +346,8 @@ def create_app() -> FastAPI:
                         cards_complete = (
                             prog.cards_total == 0 or prog.cards_done >= prog.cards_total
                         )
-                        if state in {"done", "error"} and cards_complete:
+                        watch_on = scan_id in _watchers and _watchers[scan_id].enabled
+                        if state in {"done", "error"} and cards_complete and not watch_on:
                             return
             except asyncio.CancelledError:
                 pass
