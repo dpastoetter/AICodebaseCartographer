@@ -35,6 +35,7 @@ dependencies = [
     "anyio>=4.3",
     "click>=8.1",
     "rich>=13.7",
+    "cryptography>=42.0",
     "tomli>=2.0; python_version<'3.11'",
 ]
 

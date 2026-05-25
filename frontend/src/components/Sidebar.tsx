@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { useStore, type ViewKey } from "../store";
 import {
   IconDependencies,
+  IconDocument,
   IconHotspots,
   IconMindmap,
   IconModuleCards,
@@ -17,6 +18,7 @@ const VIEWS: {
   hint: string;
   Icon: ComponentType<{ className?: string }>;
 }[] = [
+  { id: "overview", label: "Overview", hint: "Architecture brief", Icon: IconDocument },
   { id: "mindmap", label: "Structure", hint: "Repository tree", Icon: IconMindmap },
   { id: "deps", label: "Dependencies", hint: "Import graph", Icon: IconDependencies },
   { id: "symbols", label: "Symbols", hint: "Definitions & calls", Icon: IconSymbols },
@@ -24,6 +26,7 @@ const VIEWS: {
   { id: "tech", label: "Technology", hint: "Languages & manifests", Icon: IconTechRadar },
   { id: "hotspots", label: "Hotspots", hint: "Size & coupling", Icon: IconHotspots },
   { id: "risks", label: "Risks", hint: "Vulnerabilities & danger", Icon: IconRisks },
+  { id: "changes", label: "Changes", hint: "Compare two scans", Icon: IconDependencies },
 ];
 
 export function Sidebar() {

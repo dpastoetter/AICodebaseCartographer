@@ -161,6 +161,7 @@ export interface RiskFinding {
   kind: RiskKind;
   title: string;
   detail: string | null;
+  remediation: string | null;
   path: string | null;
   line: number | null;
   rule: string | null;
@@ -168,4 +169,56 @@ export interface RiskFinding {
 
 export interface RisksReport {
   findings: RiskFinding[];
+}
+
+export type VulnSeverity = "unknown" | "low" | "medium" | "high" | "critical";
+
+export interface VulnReference {
+  type: string | null;
+  url: string;
+}
+
+export interface PackageVulnerability {
+  vuln_id: string;
+  summary: string | null;
+  details: string | null;
+  severity: VulnSeverity;
+  references: VulnReference[];
+  fixed: string[];
+}
+
+export interface PackageVulns {
+  ecosystem: string;
+  name: string;
+  version: string;
+  vulnerabilities: PackageVulnerability[];
+}
+
+export interface VulnsReport {
+  packages: PackageVulns[];
+}
+
+export interface ArchitectureBrief {
+  project_name: string;
+  purpose: string;
+  modules: string;
+  tech_stack: string;
+  dependency_hubs: string;
+  hotspots_note: string;
+  top_risks: string[];
+  top_vulns: string[];
+}
+
+export interface ScanCompareResult {
+  scan_a: string;
+  scan_b: string;
+  files_added: string[];
+  files_removed: string[];
+  deps_added: string[];
+  deps_removed: string[];
+  risks_added: string[];
+  risks_removed: string[];
+  vulns_added: string[];
+  vulns_removed: string[];
+  line_deltas: Array<{ path: string; lines_a: number; lines_b: number; delta: number }>;
 }

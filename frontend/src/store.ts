@@ -1,9 +1,12 @@
 import { create } from "zustand";
 import type {
+  ArchitectureBrief,
   DependencyGraph,
   Hotspots,
   ModuleCard,
   RisksReport,
+  ScanCompareResult,
+  VulnsReport,
   ScanStatus,
   SymbolGraph,
   TechRadar,
@@ -12,13 +15,15 @@ import type {
 import { api, subscribeToScan } from "./api";
 
 export type ViewKey =
+  | "overview"
   | "mindmap"
   | "deps"
   | "symbols"
   | "cards"
   | "tech"
   | "hotspots"
-  | "risks";
+  | "risks"
+  | "changes";
 
 interface State {
   scanId: string | null;
@@ -30,38 +35,52 @@ interface State {
   tech: TechRadar | null;
   hotspots: Hotspots | null;
   risks: RisksReport | null;
+  vulns: VulnsReport | null;
+  brief: ArchitectureBrief | null;
   cards: Record<string, ModuleCard>;
+  compare: ScanCompareResult | null;
+  compareBusy: boolean;
   selectedPath: string | null;
+  searchOpen: boolean;
   unsubscribe: (() => void) | null;
   setView: (view: ViewKey) => void;
   setSelected: (path: string | null) => void;
+  setSearchOpen: (open: boolean) => void;
   attachToScan: (scanId: string) => Promise<void>;
-  startRepoScan: (repo: string, apiKey?: string | null) => Promise<void>;
+  startRepoScan: (repo: string) => Promise<void>;
   reloadArtifacts: () => Promise<void>;
+  loadCompare: (scanA: string, scanB: string) => Promise<void>;
 }
 
 export const useStore = create<State>((set, get) => ({
   scanId: null,
   status: null,
-  view: "mindmap",
+  view: "overview",
   tree: null,
   deps: null,
   symbols: null,
   tech: null,
   hotspots: null,
   risks: null,
+  vulns: null,
+  brief: null,
   cards: {},
+  compare: null,
+  compareBusy: false,
   selectedPath: null,
+  searchOpen: false,
   unsubscribe: null,
 
   setView: (view) => set({ view }),
   setSelected: (selectedPath) => set({ selectedPath }),
+  setSearchOpen: (searchOpen) => set({ searchOpen }),
 
   attachToScan: async (scanId: string) => {
     const prev = get().unsubscribe;
     if (prev) prev();
     set({
       scanId,
+      view: "overview",
       status: null,
       tree: null,
       deps: null,
@@ -69,7 +88,10 @@ export const useStore = create<State>((set, get) => ({
       tech: null,
       hotspots: null,
       risks: null,
+      vulns: null,
+      brief: null,
       cards: {},
+      compare: null,
       selectedPath: null,
     });
 
@@ -107,8 +129,8 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  startRepoScan: async (repo: string, apiKey?: string | null) => {
-    const status = await api.startScanFromRepo({ repo, llm: "none", api_key: apiKey ?? null });
+  startRepoScan: async (repo: string) => {
+    const status = await api.startScanFromRepo({ repo, llm: "none" });
     const url = new URL(window.location.href);
     url.searchParams.set("scan", status.scan_id);
     window.history.replaceState({}, "", url);
@@ -125,13 +147,15 @@ export const useStore = create<State>((set, get) => ({
         return null;
       }
     };
-    const [tree, deps, symbols, tech, hotspots, risks, cards] = await Promise.all([
+    const [tree, deps, symbols, tech, hotspots, risks, vulns, brief, cards] = await Promise.all([
       safe(api.tree(id)),
       safe(api.deps(id)),
       safe(api.symbols(id)),
       safe(api.tech(id)),
       safe(api.hotspots(id)),
       safe(api.risks(id)),
+      safe(api.vulns(id)),
+      safe(api.brief(id)),
       safe(api.cards(id)),
     ]);
     set((s) => {
@@ -142,6 +166,8 @@ export const useStore = create<State>((set, get) => ({
       if (tech) next.tech = tech;
       if (hotspots) next.hotspots = hotspots;
       if (risks) next.risks = risks;
+      if (vulns) next.vulns = vulns;
+      if (brief) next.brief = brief;
       if (cards) {
         const map = { ...s.cards };
         for (const c of cards.cards) map[c.path] = c;
@@ -149,5 +175,15 @@ export const useStore = create<State>((set, get) => ({
       }
       return next;
     });
+  },
+
+  loadCompare: async (scanA: string, scanB: string) => {
+    set({ compareBusy: true, compare: null });
+    try {
+      const compare = await api.compareScans(scanA, scanB);
+      set({ compare, view: "changes" });
+    } finally {
+      set({ compareBusy: false });
+    }
   },
 }));

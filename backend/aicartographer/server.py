@@ -10,12 +10,15 @@ from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
-from .models import ScanFromRepoRequest, ScanRequest, ScanStatus
+from .compare import compare_scans
+from .export import export_html, export_markdown
+from .models import ScanCompareResult, ScanFromRepoRequest, ScanRequest, ScanStatus, SecretIn
 from .scanner import load_artifact, registry, run_scan_sync
+from .secrets import SecretsError, clear_key, configured, set_key
 
 log = logging.getLogger(__name__)
 
@@ -129,6 +132,14 @@ def create_app() -> FastAPI:
         background.add_task(_run)
         return record.status
 
+    @app.get("/api/scans/compare", response_model=ScanCompareResult)
+    async def get_compare(a: str, b: str) -> ScanCompareResult:
+        if load_artifact(a, "tree.json") is None:
+            raise HTTPException(status_code=404, detail=f"Scan not found: {a}")
+        if load_artifact(b, "tree.json") is None:
+            raise HTTPException(status_code=404, detail=f"Scan not found: {b}")
+        return compare_scans(a, b)
+
     @app.get("/api/scans/{scan_id}")
     async def get_scan(scan_id: str) -> ScanStatus:
         record = registry.get(scan_id)
@@ -168,6 +179,24 @@ def create_app() -> FastAPI:
     @app.get("/api/scans/{scan_id}/risks")
     async def get_risks(scan_id: str) -> JSONResponse:
         return _artifact(scan_id, "risks.json")
+
+    @app.get("/api/scans/{scan_id}/vulns")
+    async def get_vulns(scan_id: str) -> JSONResponse:
+        return _artifact(scan_id, "vulns.json")
+
+    @app.get("/api/scans/{scan_id}/brief")
+    async def get_brief(scan_id: str) -> JSONResponse:
+        return _artifact(scan_id, "brief.json")
+
+    @app.get("/api/scans/{scan_id}/export")
+    async def export_scan(scan_id: str, format: str = "md"):
+        if format not in {"md", "html"}:
+            raise HTTPException(status_code=400, detail="format must be md or html")
+        if load_artifact(scan_id, "tree.json") is None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        if format == "html":
+            return HTMLResponse(export_html(scan_id))
+        return PlainTextResponse(export_markdown(scan_id), media_type="text/markdown")
 
     @app.get("/api/scans/{scan_id}/cards")
     async def get_cards(scan_id: str) -> JSONResponse:
@@ -210,6 +239,26 @@ def create_app() -> FastAPI:
                     record.listeners.remove(queue)
 
         return EventSourceResponse(_gen())
+
+    @app.get("/api/secrets")
+    async def get_secrets() -> dict[str, bool]:
+        return configured()
+
+    @app.post("/api/secrets/{provider}")
+    async def set_secret(provider: str, payload: SecretIn) -> dict[str, bool]:
+        try:
+            set_key(provider, payload.api_key)
+        except SecretsError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return configured()
+
+    @app.delete("/api/secrets/{provider}")
+    async def delete_secret(provider: str) -> dict[str, bool]:
+        try:
+            clear_key(provider)
+        except SecretsError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return configured()
 
     dist = _frontend_dist()
     if dist is not None:

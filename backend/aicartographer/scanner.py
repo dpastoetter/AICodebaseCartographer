@@ -15,12 +15,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .analysis import brief as brief_analysis
 from .analysis import deps as deps_analysis
 from .analysis import hotspots as hotspots_analysis
 from .analysis import risks as risks_analysis
 from .analysis import symbols as symbols_analysis
 from .analysis import tech as tech_analysis
+from .analysis import vulns as vulns_analysis
 from .models import (
+    ArchitectureBrief,
     DependencyGraph,
     Hotspots,
     LLMInfo,
@@ -34,6 +37,7 @@ from .models import (
     SymbolGraph,
     TechRadar,
     TreeResponse,
+    VulnsReport,
 )
 from .parsers.treesitter import ParsedFile, parse_file
 from .storage import scan_dir
@@ -191,6 +195,14 @@ def run_scan_sync(record: ScanRecord, request: ScanRequest) -> None:
         risks = risks_analysis.build(root, walk, parsed)
         _persist(record, "risks.json", risks)
 
+        _set_state(record, "analyzing", "Querying dependency vulnerabilities (OSV)")
+        vulns = vulns_analysis.build(root)
+        _persist(record, "vulns.json", vulns)
+
+        _set_state(record, "analyzing", "Building architecture brief")
+        brief = brief_analysis.build(root, walk, tech, dep_graph, spots, risks, vulns)
+        _persist(record, "brief.json", brief)
+
         record.status.finished_at = datetime.now(timezone.utc)
         _set_state(record, "done", "Static analysis complete")
     except Exception as exc:  # noqa: BLE001
@@ -211,7 +223,9 @@ def load_artifact(scan_id: str, name: str):
 __all__ = [
     "DependencyGraph",
     "Hotspots",
+    "ArchitectureBrief",
     "RisksReport",
+    "VulnsReport",
     "ScanRecord",
     "ScanRegistry",
     "SymbolGraph",

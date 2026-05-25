@@ -168,6 +168,7 @@ class RiskFinding(BaseModel):
     kind: RiskKind
     title: str
     detail: str | None = None
+    remediation: str | None = None
     path: str | None = None
     line: int | None = None
     rule: str | None = None
@@ -175,3 +176,60 @@ class RiskFinding(BaseModel):
 
 class RisksReport(BaseModel):
     findings: list[RiskFinding] = Field(default_factory=list)
+
+
+VulnSeverity = Literal["unknown", "low", "medium", "high", "critical"]
+
+
+class VulnReference(BaseModel):
+    type: str | None = None
+    url: str
+
+
+class PackageVulnerability(BaseModel):
+    vuln_id: str
+    summary: str | None = None
+    details: str | None = None
+    severity: VulnSeverity = "unknown"
+    references: list[VulnReference] = Field(default_factory=list)
+    fixed: list[str] = Field(default_factory=list)
+
+
+class PackageVulns(BaseModel):
+    ecosystem: str
+    name: str
+    version: str
+    vulnerabilities: list[PackageVulnerability] = Field(default_factory=list)
+
+
+class VulnsReport(BaseModel):
+    packages: list[PackageVulns] = Field(default_factory=list)
+
+
+class ArchitectureBrief(BaseModel):
+    project_name: str
+    purpose: str
+    modules: str
+    tech_stack: str
+    dependency_hubs: str
+    hotspots_note: str = ""
+    top_risks: list[str] = Field(default_factory=list)
+    top_vulns: list[str] = Field(default_factory=list)
+
+
+class SecretIn(BaseModel):
+    api_key: str
+
+
+class ScanCompareResult(BaseModel):
+    scan_a: str
+    scan_b: str
+    files_added: list[str] = Field(default_factory=list)
+    files_removed: list[str] = Field(default_factory=list)
+    deps_added: list[str] = Field(default_factory=list)
+    deps_removed: list[str] = Field(default_factory=list)
+    risks_added: list[str] = Field(default_factory=list)
+    risks_removed: list[str] = Field(default_factory=list)
+    vulns_added: list[str] = Field(default_factory=list)
+    vulns_removed: list[str] = Field(default_factory=list)
+    line_deltas: list[dict[str, str | int]] = Field(default_factory=list)

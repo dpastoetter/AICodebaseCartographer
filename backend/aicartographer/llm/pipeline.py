@@ -12,6 +12,7 @@ from pathlib import Path
 from ..models import LLMKind, ModuleCard, ScanRequest
 from ..parsers.treesitter import ParsedFile
 from ..scanner import ScanRecord, _broadcast, _persist, _persist_status, _set_state, scan_dir
+from ..secrets import get_key as _get_secret_key
 from . import cache
 from .base import LLMProvider, SummaryRequest
 
@@ -79,7 +80,10 @@ async def run_llm_pipeline(record: ScanRecord, request: ScanRequest) -> None:
     if request.llm == "none":
         return
     try:
-        provider = _select_provider(request.llm, request.model, request.api_key)
+        api_key = request.api_key
+        if api_key is None and request.llm in {"openai", "anthropic"}:
+            api_key = _get_secret_key(request.llm)
+        provider = _select_provider(request.llm, request.model, api_key)
     except Exception as exc:  # noqa: BLE001
         log.exception("provider init failed")
         record.status.error = f"LLM init failed: {exc}"

@@ -27,6 +27,7 @@ class _Rule:
     title: str
     pattern: re.Pattern[str]
     detail: str
+    remediation: str | None = None
 
 
 def _rid(*parts: object) -> str:
@@ -82,6 +83,7 @@ _DANGER_RULES: list[_Rule] = [
         title="subprocess with shell=True",
         pattern=re.compile(r"(?m)\bshell\s*=\s*True\b"),
         detail="shell=True is high risk with untrusted inputs.",
+        remediation="Use shell=False and pass arguments as a list, e.g. subprocess.run(['cmd', 'arg']).",
     ),
     _Rule(
         id="danger.python_pickle",
@@ -98,6 +100,7 @@ _DANGER_RULES: list[_Rule] = [
         title="Potentially unsafe yaml.load",
         pattern=re.compile(r"(?m)\byaml\.load\s*\("),
         detail="Prefer yaml.safe_load unless you control all inputs.",
+        remediation="Replace yaml.load with yaml.safe_load for untrusted YAML.",
     ),
     _Rule(
         id="danger.requests_verify_false",
@@ -106,6 +109,7 @@ _DANGER_RULES: list[_Rule] = [
         title="TLS verification disabled (verify=False)",
         pattern=re.compile(r"(?m)\bverify\s*=\s*False\b"),
         detail="Disabling TLS verification enables MITM attacks.",
+        remediation="Remove verify=False; fix CA/cert configuration instead of disabling verification.",
     ),
     _Rule(
         id="danger.weak_hash",
@@ -172,6 +176,7 @@ def _apply_rules(report: RisksReport, rel_path: str, text: str) -> None:
                     kind=rule.kind,  # type: ignore[arg-type]
                     title=rule.title,
                     detail=rule.detail,
+                    remediation=rule.remediation,
                     path=rel_path,
                     line=line,
                     rule=rule.id,

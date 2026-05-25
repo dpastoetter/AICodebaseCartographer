@@ -10,8 +10,13 @@ import { ModuleCards } from "./views/ModuleCards";
 import { TechRadar } from "./views/TechRadar";
 import { Hotspots } from "./views/Hotspots";
 import { Risks } from "./views/Risks";
+import { Overview } from "./views/Overview";
+import { Changes } from "./views/Changes";
 import { useStore } from "./store";
 import type { ScanState } from "./types";
+import { SecretsModal } from "./components/SecretsModal";
+import { GlobalSearch, GlobalSearchTrigger } from "./components/GlobalSearch";
+import { api } from "./api";
 
 export function App() {
   const view = useStore((s) => s.view);
@@ -24,13 +29,7 @@ export function App() {
   const [repo, setRepo] = useState("");
   const [busy, setBusy] = useState(false);
   const [repoError, setRepoError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState(() => {
-    try {
-      return localStorage.getItem("aicartographer_apiKey") ?? "";
-    } catch {
-      return "";
-    }
-  });
+  const [keysOpen, setKeysOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -63,7 +62,7 @@ export function App() {
                 setRepoError(null);
                 setBusy(true);
                 try {
-                  await startRepoScan(v, apiKey.trim() || null);
+                  await startRepoScan(v);
                   setRepo("");
                 } catch (err) {
                   setRepoError(err instanceof Error ? err.message : String(err));
@@ -79,26 +78,24 @@ export function App() {
                 onChange={(e) => setRepo(e.target.value)}
                 disabled={busy}
               />
-              <input
-                className="input w-52 font-mono text-xs"
-                type="password"
-                placeholder="API key (optional)"
-                value={apiKey}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setApiKey(v);
-                  try {
-                    localStorage.setItem("aicartographer_apiKey", v);
-                  } catch {
-                    // ignore
-                  }
-                }}
-                disabled={busy}
-              />
               <button className="button" type="submit" disabled={busy || !repo.trim()}>
                 {busy ? "Cloning…" : "Analyze"}
               </button>
             </form>
+            {scanId && <GlobalSearchTrigger />}
+            {scanId && (
+              <a
+                className="button !bg-white/[0.04] font-mono text-xs"
+                href={api.exportUrl(scanId, "html")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Export
+              </a>
+            )}
+            <button type="button" className="button !bg-white/[0.04]" onClick={() => setKeysOpen(true)}>
+              Keys
+            </button>
             {status && (
               <>
                 <span className="pill">
@@ -117,6 +114,7 @@ export function App() {
         <div className="flex h-[calc(100%-45px)]">
           <section className="relative flex-1 overflow-hidden">
             {!scanId && <StartPanel />}
+            {scanId && view === "overview" && <Overview />}
             {scanId && view === "mindmap" && <Mindmap />}
             {scanId && view === "deps" && <DependencyGraph />}
             {scanId && view === "symbols" && <SymbolGraph />}
@@ -124,10 +122,13 @@ export function App() {
             {scanId && view === "tech" && <TechRadar />}
             {scanId && view === "hotspots" && <Hotspots />}
             {scanId && view === "risks" && <Risks />}
+            {scanId && view === "changes" && <Changes />}
             <ScanProgress />
           </section>
           {selected && <DetailPanel />}
         </div>
+        <SecretsModal open={keysOpen} onClose={() => setKeysOpen(false)} />
+        <GlobalSearch />
       </main>
     </div>
   );
@@ -161,6 +162,8 @@ function StatusBadge({ state }: { state: ScanState }) {
 
 function viewLabel(v: string): string {
   switch (v) {
+    case "overview":
+      return "Overview";
     case "mindmap":
       return "Structure";
     case "deps":
@@ -175,6 +178,8 @@ function viewLabel(v: string): string {
       return "Hotspots";
     case "risks":
       return "Risks";
+    case "changes":
+      return "Changes";
     default:
       return v;
   }

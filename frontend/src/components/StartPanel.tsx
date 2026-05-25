@@ -15,13 +15,6 @@ export function StartPanel() {
   const [path, setPath] = useState("");
   const [llm, setLlm] = useState("none");
   const [model, setModel] = useState("");
-  const [apiKey, setApiKey] = useState(() => {
-    try {
-      return localStorage.getItem("aicartographer_apiKey") ?? "";
-    } catch {
-      return "";
-    }
-  });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recents, setRecents] = useState<ScanStatus[]>([]);
@@ -51,13 +44,11 @@ export function StartPanel() {
             repo: input,
             llm,
             model: model.trim() || null,
-            api_key: apiKey.trim() || null,
           })
         : await api.startScan({
             path: input,
             llm,
             model: model.trim() || null,
-            api_key: apiKey.trim() || null,
           });
       const url = new URL(window.location.href);
       url.searchParams.set("scan", status.scan_id);
@@ -122,27 +113,10 @@ export function StartPanel() {
               </label>
             )}
             {llm !== "none" && llm !== "ollama" && (
-              <label className="block">
-                <span className="label-upper">API key (stored in this browser)</span>
-                <input
-                  className="input mt-1.5 font-mono text-xs"
-                  type="password"
-                  placeholder={llm === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"}
-                  value={apiKey}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setApiKey(v);
-                    try {
-                      localStorage.setItem("aicartographer_apiKey", v);
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                />
-                <div className="mt-1 text-[11px] text-slate-500">
-                  For convenience only. Prefer environment variables for shared machines.
-                </div>
-              </label>
+              <div className="rounded-lg border border-white/[0.06] bg-canvas-900/40 p-3 text-xs text-slate-500">
+                Configure your {llm === "openai" ? "OpenAI" : "Anthropic"} key via{" "}
+                <span className="font-medium text-slate-300">Keys</span> in the top bar.
+              </div>
             )}
             {error && <div className="text-xs text-rose-400">{error}</div>}
             <button type="button" className="button w-full sm:w-auto" disabled={busy} onClick={start}>
